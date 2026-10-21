@@ -61,7 +61,7 @@ pipeline {
         stage('Dependency Scan (SCA)') {
             steps {
                 script {
-                    dependencyCheck additionalArguments: '--scan ./ --format HTML --format XML', odcInstallation: 'OWASP-Dependency-Check'
+                    dependencyCheck additionalArguments: '--scan ./ --format HTML --format XML --autoUpdate false', odcInstallation: 'OWASP-Dependency-Check'
                 }
             }
             post {

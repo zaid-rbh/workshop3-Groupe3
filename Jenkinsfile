@@ -2,10 +2,9 @@ pipeline {
     agent any
 
     environment {
-        SONAR_TOKEN      = credentials('sonarqube-token')
-        DOCKER_CREDS     = credentials('docker-hub-credentials')
-        IMAGE_NAME       = 'opssaad/devsecops'
-        IMAGE_TAG        = "${BUILD_NUMBER}"
+        SONAR_TOKEN = credentials('sonar-token')
+        DOCKER_CREDS = credentials('docker-hub-credentials')
+        IMAGE_NAME = 'opssaad/devsecops'
     }
 
     stages {
@@ -18,13 +17,7 @@ pipeline {
         stage('Build & Test') {
             steps {
                 script {
-                    def mavenHome = tool 'Maven3'
-                    sh "${mavenHome}/bin/mvn -B clean package"
-                }
-            }
-            post {
-                always {
-                    junit allowEmptyResults: true, testResults: 'target/surefire-reports/*.xml'
+                    sh '/var/jenkins_home/tools/hudson.tasks.Maven_MavenInstallation/Maven3/bin/mvn -B clean package'
                 }
             }
         }
@@ -34,11 +27,10 @@ pipeline {
                 script {
                     withSonarQubeEnv('SonarQube') {
                         sh '''
-                            export SONAR_HOST_URL="http://sonarqube:9000"
                             /var/jenkins_home/tools/hudson.plugins.sonar.SonarRunnerInstallation/SonarQubeScanner/bin/sonar-scanner \
                             -Dsonar.host.url=http://sonarqube:9000 \
                             -Dsonar.projectKey=devsecops \
-                            -Dsonar.projectName=DevSecOps-VulnerableShop3 \
+                            -Dsonar.projectName=DevSecOps-VulnerableShop \
                             -Dsonar.sources=src/main/java \
                             -Dsonar.java.binaries=target/classes \
                             -Dsonar.java.coveragePlugin=none
@@ -47,21 +39,27 @@ pipeline {
                 }
             }
         }
-       stage('Semgrep SAST Scan') {
-           steps {
-               script {
-                   sh '''
-                       semgrep scan --config=p/ci --json -o semgrep-report.json || true
-                   '''
-                   archiveArtifacts artifacts: 'semgrep-report.json', allowEmptyArchive: true
-               }
-           }
-       }
+
+        stage('Semgrep SAST Scan') {
+            steps {
+                script {
+                    sh '''
+                        semgrep scan --config=p/ci --json -o semgrep-report.json || true
+                    '''
+                }
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: 'semgrep-report.json', allowEmptyArchive: true
+                }
+            }
+        }
 
         stage('Dependency Scan (SCA)') {
             steps {
                 script {
-                    dependencyCheck additionalArguments: '--scan ./ --format XML --format HTML --out ./ -n --failOnError 0', odcInstallation: 'OWASP-Dependency-Check'
+                    // Utilisation de -n (noupdate) pour éviter le blocage NVD API Key
+                    dependencyCheck additionalArguments: '--scan ./ --format XML --format HTML --out ./ -n', odcInstallation: 'OWASP-Dependency-Check'
                 }
             }
             post {
@@ -75,17 +73,21 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
-                    sh "docker build -t ${IMAGE_NAME}:${IMAGE_TAG} -t ${IMAGE_NAME}:latest ."
+                    sh "docker build -t ${IMAGE_NAME}:${BUILD_NUMBER} -t ${IMAGE_NAME}:latest ."
                 }
             }
         }
-        
+
         stage('Push to Docker Hub') {
             steps {
                 script {
-                    sh 'echo $DOCKER_CREDS_PSW | docker login -u $DOCKER_CREDS_USR --password-stdin'
-                    sh "docker push ${IMAGE_NAME}:${IMAGE_TAG}"
-                    sh "docker push ${IMAGE_NAME}:latest"
+                    withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', passwordVariable: 'DOCKER_PASSWORD', usernameVariable: 'DOCKER_USER')]) {
+                        sh '''
+                            echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USER" --password-stdin
+                            docker push ${IMAGE_NAME}:${BUILD_NUMBER}
+                            docker push ${IMAGE_NAME}:latest
+                        '''
+                    }
                 }
             }
         }
@@ -94,13 +96,7 @@ pipeline {
     post {
         always {
             sh 'docker logout || true'
-            cleanWs(deleteDirs: true, notFailBuild: true)
-        }
-        success {
-            echo "Pipeline finished successfully: ${IMAGE_NAME}:${IMAGE_TAG} pushed to Docker Hub"
-        }
-        failure {
-            echo "Pipeline failed - check the stage logs above."
+            cleanWs()
         }
     }
 }

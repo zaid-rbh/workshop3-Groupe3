@@ -38,7 +38,7 @@ pipeline {
                             /var/jenkins_home/tools/hudson.plugins.sonar.SonarRunnerInstallation/SonarQubeScanner/bin/sonar-scanner \
                             -Dsonar.host.url=http://sonarqube:9000 \
                             -Dsonar.projectKey=devsecops \
-                            -Dsonar.projectName=DevSecOps-VulnerableShop \
+                            -Dsonar.projectName=DevSecOps-VulnerableShop3 \
                             -Dsonar.sources=src/main/java \
                             -Dsonar.java.binaries=target/classes \
                             -Dsonar.java.coveragePlugin=none
@@ -61,19 +61,12 @@ pipeline {
         stage('Dependency Scan (SCA)') {
             steps {
                 script {
-                    def mvnHome = tool 'Maven'
-                    sh """
-                        ${mvnHome}/bin/mvn -B org.owasp:dependency-check-maven:check || true
-                    """
+                    dependencyCheck additionalArguments: '--scan ./ --format HTML --format XML', odcInstallation: 'OWASP-Dependency-Check'
                 }
             }
             post {
                 always {
-                    publishHTML(target: [
-                        reportDir: 'target',
-                        reportFiles: 'dependency-check-report.html',
-                        reportName: 'OWASP Dependency Check Report'
-                    ])
+                    dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
                 }
             }
         }

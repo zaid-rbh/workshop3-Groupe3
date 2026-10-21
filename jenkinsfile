@@ -1,0 +1,52 @@
+pipeline {
+    agent any
+
+    options {
+        timestamps()
+        skipDefaultCheckout(true)
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Build and Test') {
+            steps {
+                bat 'mvn -B clean verify'
+            }
+        }
+
+        stage('Semgrep SAST') {
+            steps {
+                bat 'semgrep scan --config auto --error .'
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+                echo 'SonarQube stage will be configured after the server and Jenkins credentials are ready.'
+            }
+        }
+
+        stage('OWASP ZAP DAST') {
+            steps {
+                echo 'OWASP ZAP stage will be configured after the application deployment target is ready.'
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'DevSecOps pipeline completed successfully.'
+        }
+        failure {
+            echo 'Pipeline failed. Review the stage logs and fix the reported issues.'
+        }
+        always {
+            echo 'Pipeline execution finished.'
+        }
+    }
+}

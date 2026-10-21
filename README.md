@@ -60,8 +60,8 @@ Le groupe travaille sur le même projet. Chaque membre dispose de sa propre bran
 | Membre | Branche | Pipeline |
 |---|---|---|
 | Zaid | `zaid` | `Jenkinsfile` de la branche `zaid` |
-| À COMPLÉTER | À COMPLÉTER | À COMPLÉTER |
-| À COMPLÉTER | À COMPLÉTER | À COMPLÉTER |
+| saad |saad | `Jenkinsfile` de la branche `saad` |
+| soufiane |  |  |
 
 ### Projet analysé
 

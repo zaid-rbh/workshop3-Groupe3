@@ -58,28 +58,21 @@ pipeline {
            }
        }
 
-        stage('Dependency Scan (SCA)') {
+        stage('OWASP Dependency-Check') {
             steps {
-                script {
+                withCredentials([string(credentialsId: 'nvd-api-key', variable: 'NVD_API_KEY')]) {
                     sh '''
-                        docker run --rm \
-                        -v $(pwd):/src \
-                        owasp/dependency-check:latest \
-                        --scan /src \
-                        --format XML \
-                        --format HTML \
-                        --out /src \
-                        --noupdate || true
+                        mvn -B org.owasp:dependency-check-maven:check \
+                          -DnvdApiKey=$NVD_API_KEY \
+                          -DdataDirectory=/var/jenkins_home/dependency-check-data \
+                          -Dformats=HTML,JSON \
+                          -DfailBuildOnCVSS=11 \
+                          -DossindexAnalyzerEnabled=false
                     '''
                 }
             }
-            post {
-                always {
-                    dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
-                    archiveArtifacts artifacts: '**/dependency-check-report.html', allowEmptyArchive: true
-                }
-            }
         }
+    }
 
         stage('Build Docker Image') {
             steps {

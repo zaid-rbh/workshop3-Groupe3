@@ -2,9 +2,10 @@ pipeline {
     agent any
 
     environment {
-        SONAR_TOKEN = credentials('sonar-token')
-        DOCKER_CREDS = credentials('docker-hub-credentials')
-        IMAGE_NAME = 'opssaad/devsecops'
+        SONAR_TOKEN      = credentials('sonarqube-token')
+        DOCKER_CREDS     = credentials('docker-hub-credentials')
+        IMAGE_NAME       = 'opssaad/devsecops'
+        IMAGE_TAG        = "${BUILD_NUMBER}"
     }
 
     stages {
@@ -17,7 +18,13 @@ pipeline {
         stage('Build & Test') {
             steps {
                 script {
-                    sh '/var/jenkins_home/tools/hudson.tasks.Maven_MavenInstallation/Maven3/bin/mvn -B clean package'
+                    def mavenHome = tool 'Maven3'
+                    sh "${mavenHome}/bin/mvn -B clean package"
+                }
+            }
+            post {
+                always {
+                    junit allowEmptyResults: true, testResults: 'target/surefire-reports/*.xml'
                 }
             }
         }
@@ -27,10 +34,11 @@ pipeline {
                 script {
                     withSonarQubeEnv('SonarQube') {
                         sh '''
+                            export SONAR_HOST_URL="http://sonarqube:9000"
                             /var/jenkins_home/tools/hudson.plugins.sonar.SonarRunnerInstallation/SonarQubeScanner/bin/sonar-scanner \
                             -Dsonar.host.url=http://sonarqube:9000 \
                             -Dsonar.projectKey=devsecops \
-                            -Dsonar.projectName=DevSecOps-VulnerableShop \
+                            -Dsonar.projectName=DevSecOps-VulnerableShop3 \
                             -Dsonar.sources=src/main/java \
                             -Dsonar.java.binaries=target/classes \
                             -Dsonar.java.coveragePlugin=none
@@ -39,49 +47,43 @@ pipeline {
                 }
             }
         }
-
-        stage('Semgrep SAST Scan') {
-            steps {
-                script {
-                    sh '''
-                        semgrep scan --config=p/ci --json -o semgrep-report.json || true
-                    '''
-                }
-            }
-            post {
-                always {
-                    archiveArtifacts artifacts: 'semgrep-report.json', allowEmptyArchive: true
-                }
-            }
-        }
+       stage('Semgrep SAST Scan') {
+           steps {
+               script {
+                   sh '''
+                       semgrep scan --config=p/ci --json -o semgrep-report.json || true
+                   '''
+                   archiveArtifacts artifacts: 'semgrep-report.json', allowEmptyArchive: true
+               }
+           }
+       }
 
         stage('Dependency Scan (SCA)') {
             steps {
-                script {
+                withCredentials([string(credentialsId: 'nvd-api-key', variable: 'NVD_KEY')]) {
                     sh '''
+                        mkdir -p odc-reports
+                        docker volume create odc-data
                         docker run --rm \
-                        -v $(pwd):/src \
-                        owasp/dependency-check:latest \
-                        --scan /src \
-                        --format XML \
-                        --format HTML \
-                        --out /src \
-                        --noupdate || true
+                          -u $(id -u):$(id -g) \
+                          -v "$(pwd)":/src \
+                          -v odc-data:/usr/share/dependency-check/data \
+                          owasp/dependency-check:latest \
+                          --scan /src \
+                          --format XML --format HTML \
+                          --out /src/odc-reports \
+                          --nvdApiKey "$NVD_KEY"
                     '''
                 }
-            }
-            post {
-                always {
-                    dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
-                    archiveArtifacts artifacts: '**/dependency-check-report.html', allowEmptyArchive: true
-                }
+                dependencyCheckPublisher pattern: 'odc-reports/dependency-check-report.xml'
+                archiveArtifacts artifacts: 'odc-reports/*', allowEmptyArchive: true
             }
         }
 
         stage('Build Docker Image') {
             steps {
                 script {
-                    sh "docker build -t ${IMAGE_NAME}:${BUILD_NUMBER} -t ${IMAGE_NAME}:latest ."
+                    sh "docker build -t ${IMAGE_NAME}:${IMAGE_TAG} -t ${IMAGE_NAME}:latest ."
                 }
             }
         }
@@ -89,13 +91,9 @@ pipeline {
         stage('Push to Docker Hub') {
             steps {
                 script {
-                    withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', passwordVariable: 'DOCKER_PASSWORD', usernameVariable: 'DOCKER_USER')]) {
-                        sh '''
-                            echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USER" --password-stdin
-                            docker push ${IMAGE_NAME}:${BUILD_NUMBER}
-                            docker push ${IMAGE_NAME}:latest
-                        '''
-                    }
+                    sh 'echo $DOCKER_CREDS_PSW | docker login -u $DOCKER_CREDS_USR --password-stdin'
+                    sh "docker push ${IMAGE_NAME}:${IMAGE_TAG}"
+                    sh "docker push ${IMAGE_NAME}:latest"
                 }
             }
         }
@@ -104,7 +102,13 @@ pipeline {
     post {
         always {
             sh 'docker logout || true'
-            cleanWs()
+            cleanWs(deleteDirs: true, notFailBuild: true)
+        }
+        success {
+            echo "Pipeline finished successfully: ${IMAGE_NAME}:${IMAGE_TAG} pushed to Docker Hub"
+        }
+        failure {
+            echo "Pipeline failed - check the stage logs above."
         }
     }
 }

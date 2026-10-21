@@ -59,18 +59,27 @@ pipeline {
        }
 
         stage('Dependency Scan (SCA)') {
-                    steps {
-                        script {
-                            dependencyCheck additionalArguments: '--scan ./ --format XML --format HTML -o ./ -n', odcInstallation: 'OWASP-Dependency-Check'
-                        }
-                    }
-                    post {
-                        always {
-                            dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
-                            archiveArtifacts artifacts: '**/dependency-check-report.html', allowEmptyArchive: true
-                        }
-                    }
+            steps {
+                script {
+                    sh '''
+                        docker run --rm \
+                        -v $(pwd):/src \
+                        owasp/dependency-check:latest \
+                        --scan /src \
+                        --format XML \
+                        --format HTML \
+                        --out /src/dependency-check-report.xml \
+                        --noupdate || true
+                    '''
                 }
+            }
+            post {
+                always {
+                    dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
+                    archiveArtifacts artifacts: '**/dependency-check-report.html', allowEmptyArchive: true
+                }
+            }
+        }
 
         stage('Build Docker Image') {
             steps {

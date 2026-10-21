@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+
+<head th:fragment="head(title)">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="${title} + ' | VulnerableShop'">VulnerableShop</title>
+    <link rel="stylesheet" th:href="@{/webjars/bootstrap/5.3.3/css/bootstrap.min.css}">
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+
+<body>
+
+<nav th:fragment="navbar" class="navbar navbar-expand-lg navbar-dark shop-nav sticky-top">
+    <div class="container">
+        <a class="navbar-brand fw-bold" th:href="@{/}">VulnerableShop</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav"
+                aria-controls="mainNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="mainNav">
+            <ul class="navbar-nav me-auto">
+                <li class="nav-item"><a class="nav-link" th:href="@{/}">Home</a></li>
+                <li class="nav-item"><a class="nav-link" th:href="@{/products}">Products</a></li>
+                <li class="nav-item" sec:authorize="isAuthenticated()"><a class="nav-link" th:href="@{/cart}">Cart</a></li>
+                <li class="nav-item" sec:authorize="isAuthenticated()"><a class="nav-link" th:href="@{/orders}">My orders</a></li>
+                <li class="nav-item" sec:authorize="isAuthenticated()"><a class="nav-link" th:href="@{/upload}">Upload</a></li>
+                <li class="nav-item" sec:authorize="hasRole('ADMIN')"><a class="nav-link" th:href="@{/admin}">Admin</a></li>
+            </ul>
+            <form class="d-flex me-lg-3 my-2 my-lg-0" th:action="@{/products}" method="get">
+                <input class="form-control form-control-sm me-2" type="search" name="q" placeholder="Search products">
+                <button class="btn btn-sm btn-light" type="submit">Search</button>
+            </form>
+            <div class="d-flex align-items-center gap-2">
+                <div sec:authorize="isAnonymous()" class="d-flex gap-2">
+                    <a class="btn btn-sm btn-outline-light" th:href="@{/login}">Log in</a>
+                    <a class="btn btn-sm btn-warning" th:href="@{/register}">Register</a>
+                </div>
+                <div sec:authorize="isAuthenticated()" class="d-flex align-items-center gap-2">
+                    <a class="text-white text-decoration-none small" th:href="@{/profile}">
+                        Signed in as <strong sec:authentication="name">user</strong>
+                    </a>
+                    <form th:action="@{/logout}" method="post" class="m-0">
+                        <button class="btn btn-sm btn-outline-light" type="submit">Log out</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<div th:fragment="alerts" class="container mt-3">
+    <div th:if="${message}" class="alert alert-success mb-0" th:text="${message}">Message</div>
+    <div th:if="${error}" class="alert alert-danger mb-0" th:text="${error}">Error</div>
+</div>
+
+<footer th:fragment="footer" class="shop-footer mt-5 py-4">
+    <div class="container small">
+        <strong>Educational project.</strong> VulnerableShop is intentionally vulnerable. Run it locally only,
+        with fictional data. Never deploy it publicly.
+    </div>
+    <script th:src="@{/webjars/bootstrap/5.3.3/js/bootstrap.bundle.min.js}"></script>
+    <script th:src="@{/js/app.js}"></script>
+</footer>
+
+</body>
+</html>

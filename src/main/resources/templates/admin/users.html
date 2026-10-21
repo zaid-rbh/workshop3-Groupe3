@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Users')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+<div th:replace="~{fragments/layout :: alerts}"></div>
+
+<main class="container py-4">
+    <a class="small" th:href="@{/admin}">&larr; Dashboard</a>
+    <h1 class="h3 my-2">Registered users</h1>
+
+    <div class="table-responsive">
+        <table class="table align-middle">
+            <thead><tr><th>ID</th><th>Username</th><th>Full name</th><th>E-mail</th><th>Role</th><th></th></tr></thead>
+            <tbody>
+            <tr th:each="u : ${users}">
+                <td th:text="${u.id}">1</td>
+                <td th:text="${u.username}">user</td>
+                <td th:text="${u.fullName}">Name</td>
+                <td th:text="${u.email}">mail</td>
+                <td><span class="badge text-bg-secondary" th:text="${u.role}">USER</span></td>
+                <td><a class="btn btn-sm btn-outline-primary" th:href="@{/profile/{id}(id=${u.id})}">Profile</a></td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</main>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

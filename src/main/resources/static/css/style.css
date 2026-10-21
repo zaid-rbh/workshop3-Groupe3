@@ -1,0 +1,83 @@
+/* VulnerableShop - deep teal and amber, system fonts only (no external requests) */
+:root {
+    --brand: #0f4c5c;
+    --brand-dark: #0a3641;
+    --accent: #e9a23b;
+    --ink: #1c2b33;
+    --muted: #5d6d75;
+    --surface: #f4f7f8;
+    --line: #dbe3e6;
+}
+
+body {
+    font-family: "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: var(--ink);
+    background: var(--surface);
+    line-height: 1.55;
+}
+
+a { color: var(--brand); }
+
+.shop-nav { background: var(--brand); }
+
+.btn-primary { --bs-btn-bg: var(--brand); --bs-btn-border-color: var(--brand);
+    --bs-btn-hover-bg: var(--brand-dark); --bs-btn-hover-border-color: var(--brand-dark);
+    --bs-btn-active-bg: var(--brand-dark); --bs-btn-active-border-color: var(--brand-dark); }
+.btn-outline-primary { --bs-btn-color: var(--brand); --bs-btn-border-color: var(--brand);
+    --bs-btn-hover-bg: var(--brand); --bs-btn-hover-border-color: var(--brand);
+    --bs-btn-active-bg: var(--brand); --bs-btn-active-border-color: var(--brand); }
+.btn-warning { --bs-btn-bg: var(--accent); --bs-btn-border-color: var(--accent); --bs-btn-color: #2a1c05; }
+
+.hero {
+    background: linear-gradient(120deg, var(--brand-dark), var(--brand));
+    color: #fff;
+    padding: 4.5rem 0;
+}
+.hero .lead { max-width: 40rem; opacity: .9; }
+
+.product-card {
+    border: 1px solid var(--line);
+    border-radius: .75rem;
+    overflow: hidden;
+    background: #fff;
+}
+.product-icon {
+    font-size: 3.5rem;
+    text-align: center;
+    padding: 1.25rem 0;
+    background: #e8eff1;
+}
+.detail-icon {
+    font-size: 9rem;
+    text-align: center;
+    padding: 2rem 0;
+    background: #e8eff1;
+    border-radius: .75rem;
+}
+.price { font-weight: 700; color: var(--brand); }
+
+.review {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: .5rem;
+    padding: .85rem 1rem;
+}
+
+.stat-card { border: 1px solid var(--line); border-radius: .75rem; }
+
+.trace {
+    background: #14202a;
+    color: #cfe3ee;
+    padding: 1rem;
+    border-radius: .5rem;
+    max-height: 22rem;
+    overflow: auto;
+    font-size: .8rem;
+}
+
+.shop-footer { border-top: 1px solid var(--line); color: var(--muted); background: #fff; }
+
+.form-control:focus, .form-select:focus, .btn:focus-visible {
+    box-shadow: 0 0 0 .2rem rgba(233, 162, 59, .45);
+    border-color: var(--accent);
+}

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Checkout')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+<div th:replace="~{fragments/layout :: alerts}"></div>
+
+<main class="container py-4" style="max-width: 760px;">
+    <h1 class="h3 mb-3">Checkout</h1>
+    <p class="text-muted">This is a simulation. No payment is processed. Use a fictional card number.</p>
+
+    <ul class="list-group mb-3">
+        <li class="list-group-item d-flex justify-content-between" th:each="item : ${items}">
+            <span><span th:text="${item.quantity}">1</span> &times; <span th:text="${item.product.name}">Name</span></span>
+            <span th:text="'$' + ${#numbers.formatDecimal(item.lineTotal, 1, 2)}">$0.00</span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between fw-bold">
+            <span>Total</span>
+            <span th:text="'$' + ${#numbers.formatDecimal(total, 1, 2)}">$0.00</span>
+        </li>
+    </ul>
+
+    <form th:action="@{/checkout}" method="post" class="card card-body">
+        <!-- VULNERABILITY #15: the total is sent from the browser and stored as the order total. -->
+        <input type="hidden" name="total" th:value="${total}">
+        <div class="mb-3">
+            <label class="form-label" for="shippingAddress">Shipping address</label>
+            <input class="form-control" id="shippingAddress" name="shippingAddress" th:value="${user.address}">
+        </div>
+        <div class="mb-3">
+            <label class="form-label" for="cardNumber">Card number (fictional)</label>
+            <input class="form-control" id="cardNumber" name="cardNumber" placeholder="4111111111111111">
+        </div>
+        <button class="btn btn-primary" type="submit">Place order</button>
+    </form>
+</main>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

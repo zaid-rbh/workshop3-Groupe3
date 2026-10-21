@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments/layout :: head('Product')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+<div th:replace="~{fragments/layout :: alerts}"></div>
+
+<main class="container py-4">
+    <a class="small" th:href="@{/products}">&larr; Back to products</a>
+
+    <div class="row g-4 mt-1">
+        <div class="col-md-5">
+            <div class="detail-icon" th:text="${product.icon}">📦</div>
+        </div>
+        <div class="col-md-7">
+            <h1 class="h2" th:text="${product.name}">Name</h1>
+            <p class="price fs-3" th:text="'$' + ${#numbers.formatDecimal(product.price, 1, 2)}">$0.00</p>
+
+            <!-- VULNERABILITY #13 (display side): the description is printed without escaping (th:utext). -->
+            <p th:utext="${product.description}">Description</p>
+
+            <p class="text-muted small"><span th:text="${product.stock}">0</span> in stock</p>
+
+            <!-- VULNERABILITY #15: the price is sent as a hidden field and trusted by the server. -->
+            <form th:action="@{/cart/add}" method="post" class="d-flex gap-2 align-items-center">
+                <input type="hidden" name="productId" th:value="${product.id}">
+                <input type="hidden" name="price" th:value="${product.price}">
+                <input class="form-control" style="width: 90px;" type="number" name="quantity" value="1">
+                <button class="btn btn-primary" type="submit">Add to cart</button>
+            </form>
+            <p class="small text-muted mt-2" sec:authorize="isAnonymous()">
+                You need to <a th:href="@{/login}">log in</a> to use the cart.
+            </p>
+        </div>
+    </div>
+
+    <hr class="my-5">
+
+    <h2 class="h4 mb-3">Customer reviews</h2>
+    <p class="text-muted" th:if="${#lists.isEmpty(reviews)}">No reviews yet. Be the first to write one.</p>
+
+    <div class="review mb-3" th:each="r : ${reviews}">
+        <!-- VULNERABILITY #13: stored XSS. Author and content are rendered with th:utext (no escaping). -->
+        <div class="fw-semibold" th:utext="${r.author}">author</div>
+        <div class="text-muted small" th:text="${#temporals.format(r.createdAt, 'yyyy-MM-dd HH:mm')}">date</div>
+        <div th:utext="${r.content}">content</div>
+    </div>
+
+    <form th:action="@{/products/{id}/reviews(id=${product.id})}" method="post" class="card card-body mt-4">
+        <h3 class="h6">Write a review</h3>
+        <div class="mb-2">
+            <input class="form-control" name="author" placeholder="Your name">
+        </div>
+        <div class="mb-2">
+            <textarea class="form-control" name="content" rows="3" placeholder="Your review"></textarea>
+        </div>
+        <button class="btn btn-outline-primary align-self-start" type="submit">Publish review</button>
+    </form>
+</main>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

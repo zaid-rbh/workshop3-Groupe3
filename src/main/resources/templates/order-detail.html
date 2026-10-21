@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Order details')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+<div th:replace="~{fragments/layout :: alerts}"></div>
+
+<main class="container py-4">
+    <a class="small" th:href="@{/orders}">&larr; Back to my orders</a>
+    <h1 class="h3 mt-2">Order <span th:text="${order.orderRef}">ORD-0</span></h1>
+
+    <dl class="row">
+        <dt class="col-sm-3">Customer</dt>
+        <dd class="col-sm-9" th:text="${order.user.fullName}">Name</dd>
+        <dt class="col-sm-3">Date</dt>
+        <dd class="col-sm-9" th:text="${#temporals.format(order.createdAt, 'yyyy-MM-dd HH:mm')}">date</dd>
+        <dt class="col-sm-3">Status</dt>
+        <dd class="col-sm-9" th:text="${order.status}">PLACED</dd>
+        <dt class="col-sm-3">Shipping address</dt>
+        <dd class="col-sm-9" th:text="${order.shippingAddress}">Address</dd>
+    </dl>
+
+    <table class="table align-middle">
+        <thead><tr><th>Product</th><th>Unit price</th><th>Quantity</th><th>Subtotal</th></tr></thead>
+        <tbody>
+        <tr th:each="item : ${order.items}">
+            <td th:text="${item.product.name}">Name</td>
+            <td th:text="'$' + ${#numbers.formatDecimal(item.price, 1, 2)}">$0.00</td>
+            <td th:text="${item.quantity}">1</td>
+            <td th:text="'$' + ${#numbers.formatDecimal(item.lineTotal, 1, 2)}">$0.00</td>
+        </tr>
+        </tbody>
+        <tfoot>
+        <tr class="fw-bold">
+            <td colspan="3" class="text-end">Total</td>
+            <td th:text="'$' + ${#numbers.formatDecimal(order.total, 1, 2)}">$0.00</td>
+        </tr>
+        </tfoot>
+    </table>
+</main>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

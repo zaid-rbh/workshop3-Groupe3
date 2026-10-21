@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('My orders')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+<div th:replace="~{fragments/layout :: alerts}"></div>
+
+<main class="container py-4">
+    <h1 class="h3 mb-3">My orders</h1>
+
+    <div class="alert alert-info" th:if="${#lists.isEmpty(orders)}">
+        You have not placed any order yet. <a th:href="@{/products}">Start shopping</a>.
+    </div>
+
+    <div class="table-responsive" th:unless="${#lists.isEmpty(orders)}">
+        <table class="table align-middle">
+            <thead><tr><th>Order</th><th>Date</th><th>Status</th><th>Total</th><th></th></tr></thead>
+            <tbody>
+            <tr th:each="o : ${orders}">
+                <td th:text="${o.orderRef}">ORD-0</td>
+                <td th:text="${#temporals.format(o.createdAt, 'yyyy-MM-dd HH:mm')}">date</td>
+                <td><span class="badge text-bg-secondary" th:text="${o.status}">PLACED</span></td>
+                <td th:text="'$' + ${#numbers.formatDecimal(o.total, 1, 2)}">$0.00</td>
+                <td><a class="btn btn-sm btn-outline-primary" th:href="@{/orders/{id}(id=${o.id})}">Details</a></td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</main>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

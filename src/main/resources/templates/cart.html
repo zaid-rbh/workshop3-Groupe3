@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Cart')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+<div th:replace="~{fragments/layout :: alerts}"></div>
+
+<main class="container py-4">
+    <h1 class="h3 mb-3">Your cart</h1>
+
+    <div class="alert alert-info" th:if="${#lists.isEmpty(items)}">
+        Your cart is empty. <a th:href="@{/products}">Browse the products</a> to add something.
+    </div>
+
+    <div class="table-responsive" th:unless="${#lists.isEmpty(items)}">
+        <table class="table align-middle">
+            <thead>
+            <tr><th>Product</th><th>Unit price</th><th>Quantity</th><th>Subtotal</th><th></th></tr>
+            </thead>
+            <tbody>
+            <tr th:each="item : ${items}">
+                <td><span th:text="${item.product.icon}">📦</span> <span th:text="${item.product.name}">Name</span></td>
+                <td th:text="'$' + ${#numbers.formatDecimal(item.unitPrice, 1, 2)}">$0.00</td>
+                <td>
+                    <form th:action="@{/cart/update}" method="post" class="d-flex gap-2">
+                        <input type="hidden" name="itemId" th:value="${item.id}">
+                        <input class="form-control form-control-sm" style="width: 80px;" type="number" name="quantity" th:value="${item.quantity}">
+                        <button class="btn btn-sm btn-outline-primary" type="submit">Update</button>
+                    </form>
+                </td>
+                <td th:text="'$' + ${#numbers.formatDecimal(item.lineTotal, 1, 2)}">$0.00</td>
+                <td>
+                    <form th:action="@{/cart/remove}" method="post">
+                        <input type="hidden" name="itemId" th:value="${item.id}">
+                        <button class="btn btn-sm btn-outline-danger" type="submit">Remove</button>
+                    </form>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+
+        <div class="d-flex justify-content-between align-items-center">
+            <div class="fs-5">Total: <strong th:text="'$' + ${#numbers.formatDecimal(total, 1, 2)}">$0.00</strong></div>
+            <a class="btn btn-primary" th:href="@{/checkout}">Go to checkout</a>
+        </div>
+    </div>
+</main>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

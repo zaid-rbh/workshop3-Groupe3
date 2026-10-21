@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Profile')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+<div th:replace="~{fragments/layout :: alerts}"></div>
+
+<main class="container py-4" style="max-width: 640px;">
+    <h1 class="h3 mb-1">Profile</h1>
+    <p class="text-muted">
+        Username: <strong th:text="${profileUser.username}">user</strong> &middot;
+        Role: <span class="badge text-bg-secondary" th:text="${profileUser.role}">USER</span> &middot;
+        Account number: <span th:text="${profileUser.id}">1</span>
+    </p>
+
+    <form th:action="@{/profile/{id}(id=${profileUser.id})}" method="post" class="card card-body">
+        <div class="mb-3">
+            <label class="form-label" for="fullName">Full name</label>
+            <input class="form-control" id="fullName" name="fullName" th:value="${profileUser.fullName}">
+        </div>
+        <div class="mb-3">
+            <label class="form-label" for="email">E-mail</label>
+            <input class="form-control" id="email" name="email" th:value="${profileUser.email}">
+        </div>
+        <div class="mb-3">
+            <label class="form-label" for="address">Address</label>
+            <input class="form-control" id="address" name="address" th:value="${profileUser.address}">
+        </div>
+        <div class="mb-3">
+            <label class="form-label" for="cardNumber">Saved card number (fictional)</label>
+            <input class="form-control" id="cardNumber" name="cardNumber" th:value="${cardNumber}">
+        </div>
+        <button class="btn btn-primary align-self-start" type="submit">Save changes</button>
+    </form>
+</main>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

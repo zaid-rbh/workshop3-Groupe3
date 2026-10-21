@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Upload')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+<div th:replace="~{fragments/layout :: alerts}"></div>
+
+<main class="container py-4" style="max-width: 720px;">
+    <h1 class="h3 mb-2">File upload demonstration</h1>
+    <p class="text-muted">
+        Files are stored in the local <code>uploads</code> folder only. Use harmless test files (for example a small
+        text file). This page has no restrictions on purpose.
+    </p>
+
+    <form th:action="@{/upload}" method="post" enctype="multipart/form-data" class="card card-body mb-4">
+        <div class="mb-3">
+            <label class="form-label" for="file">Choose a file</label>
+            <input class="form-control" id="file" type="file" name="file">
+        </div>
+        <button class="btn btn-primary align-self-start" type="submit">Upload</button>
+    </form>
+
+    <h2 class="h5">Uploaded files</h2>
+    <p class="text-muted" th:if="${#lists.isEmpty(files)}">Nothing uploaded yet.</p>
+    <ul class="list-group">
+        <li class="list-group-item" th:each="f : ${files}">
+            <a th:href="@{/uploads/{name}(name=${f})}" th:text="${f}">file</a>
+        </li>
+    </ul>
+</main>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

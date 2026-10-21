@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Error')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+
+<main class="container py-4">
+    <h1 class="h3 text-danger">Something went wrong</h1>
+    <p>The request could not be completed.</p>
+
+    <!-- VULNERABILITY #17: internal details (class name, message, root cause, stack trace) shown to the user. -->
+    <dl class="row small">
+        <dt class="col-sm-2">Exception</dt>
+        <dd class="col-sm-10"><code th:text="${exceptionType}">type</code></dd>
+        <dt class="col-sm-2">Message</dt>
+        <dd class="col-sm-10"><code th:text="${message}">message</code></dd>
+        <dt class="col-sm-2">Root cause</dt>
+        <dd class="col-sm-10"><code th:text="${rootCause}">cause</code></dd>
+    </dl>
+    <pre class="trace" th:text="${trace}">stack trace</pre>
+
+    <a class="btn btn-primary" th:href="@{/}">Back to the home page</a>
+</main>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

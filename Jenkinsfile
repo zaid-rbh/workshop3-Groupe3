@@ -60,23 +60,24 @@ pipeline {
 
         stage('Dependency Scan (SCA)') {
             steps {
-                withCredentials([string(credentialsId: 'nvd-api-key', variable: 'NVD_KEY')]) {
+                script {
                     sh '''
-                        mkdir -p odc-reports
-                        docker volume create odc-data
                         docker run --rm \
-                          -u $(id -u):$(id -g) \
-                          -v "$(pwd)":/src \
-                          -v odc-data:/usr/share/dependency-check/data \
-                          owasp/dependency-check:latest \
-                          --scan /src \
-                          --format XML --format HTML \
-                          --out /src/odc-reports \
-                          --nvdApiKey "$NVD_KEY"
+                        -v $(pwd):/src \
+                        owasp/dependency-check:latest \
+                        --scan /src \
+                        --format XML \
+                        --format HTML \
+                        --out /src \
+                        --noupdate || true
                     '''
                 }
-                dependencyCheckPublisher pattern: 'odc-reports/dependency-check-report.xml'
-                archiveArtifacts artifacts: 'odc-reports/*', allowEmptyArchive: true
+            }
+            post {
+                always {
+                    dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
+                    archiveArtifacts artifacts: '**/dependency-check-report.html', allowEmptyArchive: true
+                }
             }
         }
 

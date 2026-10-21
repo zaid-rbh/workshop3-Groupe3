@@ -59,26 +59,27 @@ pipeline {
        }
 
         stage('Dependency Scan (SCA)') {
-                    steps {
-                        script {
-                            sh '''
-                                docker run --rm \
-                                -v "$(pwd)":/src \
-                                owasp/dependency-check:latest \
-                                --scan /src \
-                                --format XML \
-                                --format HTML \
-                                --out /src \
-                                --noupdate || true
-                            '''
-                        }
-                    }
-                    post {
-                        always {
-                            dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
-                            archiveArtifacts artifacts: '**/dependency-check-report.html', allowEmptyArchive: true
-                        }
-                    }
+            steps {
+                script {
+                    sh '''
+                        docker run --rm \
+                        -v $(pwd):/src \
+                        owasp/dependency-check:latest \
+                        --scan /src \
+                        --format XML \
+                        --format HTML \
+                        --out /src \
+                        --noupdate || true
+                    '''
+                }
+            }
+            post {
+                always {
+                    dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
+                    archiveArtifacts artifacts: '**/dependency-check-report.html', allowEmptyArchive: true
+                }
+            }
+        }
 
         stage('Build Docker Image') {
             steps {

@@ -68,7 +68,7 @@ pipeline {
                         --scan /src \
                         --format XML \
                         --format HTML \
-                        --out /src/dependency-check-report.xml \
+                        --out /src \
                         --noupdate || true
                     '''
                 }

@@ -59,18 +59,18 @@ pipeline {
        }
 
         stage('Dependency Scan (SCA)') {
-            steps {
-                script {
-                    dependencyCheck additionalArguments: '--scan ./ --format XML --format HTML --out ./ -n --failOnError 0', odcInstallation: 'OWASP-Dependency-Check'
+                    steps {
+                        script {
+                            dependencyCheck additionalArguments: '--scan ./ --format XML --format HTML --out ./ -n', odcInstallation: 'OWASP-Dependency-Check'
+                        }
+                    }
+                    post {
+                        always {
+                            dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
+                            archiveArtifacts artifacts: '**/dependency-check-report.html', allowEmptyArchive: true
+                        }
+                    }
                 }
-            }
-            post {
-                always {
-                    dependencyCheckPublisher pattern: 'dependency-check-report.xml'
-                    archiveArtifacts artifacts: 'dependency-check-report.html', allowEmptyArchive: true
-                }
-            }
-        }
 
         stage('Build Docker Image') {
             steps {

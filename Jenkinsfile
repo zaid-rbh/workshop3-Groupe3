@@ -58,6 +58,26 @@ pipeline {
            }
        }
 
+        stage('Dependency Scan (SCA)') {
+            steps {
+                script {
+                    def mvnHome = tool 'Maven'
+                    sh """
+                        ${mvnHome}/bin/mvn -B org.owasp:dependency-check-maven:check || true
+                    """
+                }
+            }
+            post {
+                always {
+                    publishHTML(target: [
+                        reportDir: 'target',
+                        reportFiles: 'dependency-check-report.html',
+                        reportName: 'OWASP Dependency Check Report'
+                    ])
+                }
+            }
+        }
+
         stage('Build Docker Image') {
             steps {
                 script {

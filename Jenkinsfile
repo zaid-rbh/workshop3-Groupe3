@@ -79,7 +79,6 @@ pipeline {
                 archiveArtifacts artifacts: 'odc-reports/*', allowEmptyArchive: true
             }
         }
-
         stage('Build Docker Image') {
             steps {
                 script {

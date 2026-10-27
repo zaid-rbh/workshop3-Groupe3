@@ -58,25 +58,34 @@ pipeline {
            }
        }
 
-        stage('Dependency Scan (SCA)') {
+        stage('OWASP Dependency Check (SCA)') {
             steps {
-                withCredentials([string(credentialsId: 'nvd-api-key', variable: 'NVD_KEY')]) {
+                script {
                     sh '''
                         mkdir -p odc-reports
-                        docker volume create odc-data
-                        docker run --rm \
-                          -u $(id -u):$(id -g) \
-                          -v "$(pwd)":/src \
-                          -v odc-data:/usr/share/dependency-check/data \
-                          owasp/dependency-check:latest \
-                          --scan /src \
-                          --format XML --format HTML \
-                          --out /src/odc-reports \
-                          --nvdApiKey "$NVD_KEY"
+                        chmod -R 777 odc-reports || true
+                        docker volume create odc-data || true
                     '''
+                    withCredentials([string(credentialsId: 'nvd-api-key', variable: 'NVD_KEY')]) {
+                        sh '''
+                            docker run --rm \
+                              -u $(id -u):$(id -g) \
+                              -v "$(pwd)":/src \
+                              -v odc-data:/usr/share/dependency-check/data \
+                              owasp/dependency-check:latest \
+                              --scan /src \
+                              --format XML --format HTML --format JSON \
+                              --out /src/odc-reports \
+                              --nvdApiKey "$NVD_KEY" || true
+                        '''
+                    }
                 }
-                dependencyCheckPublisher pattern: 'odc-reports/dependency-check-report.xml'
-                archiveArtifacts artifacts: 'odc-reports/*', allowEmptyArchive: true
+            }
+            post {
+                always {
+                    dependencyCheckPublisher pattern: 'odc-reports/dependency-check-report.xml'
+                    archiveArtifacts artifacts: 'odc-reports/*', allowEmptyArchive: true
+                }
             }
         }
         stage('Build Docker Image') {

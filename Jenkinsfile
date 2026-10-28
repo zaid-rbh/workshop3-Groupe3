@@ -38,7 +38,7 @@ pipeline {
                     done
 
                     docker rm -f zap-baseline || true
-                    docker run --name zap-baseline --network devsecops \
+                    docker run --name zap-baseline --network zaid \
                         ghcr.io/zaproxy/zaproxy:stable \
                         zap-baseline.py -t http://jenkins:8081 \
                         -r zap-baseline.html -J zap-baseline.json -I || true

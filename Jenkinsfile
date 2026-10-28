@@ -4,6 +4,9 @@ pipeline {
     options {
         disableConcurrentBuilds()
     }
+    environment {
+        DOCKER_HOST = 'tcp://host.docker.internal:2375'
+    }
 
     tools {
         maven 'Maven3'

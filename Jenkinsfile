@@ -38,10 +38,9 @@ pipeline {
                     done
 
                     docker rm -f zap-baseline || true
-                    docker run --name zap-baseline --network zaid \
+                    docker run --name zap-baseline --network zaid --user root \
                         ghcr.io/zaproxy/zaproxy:stable \
-                        zap-baseline.py -t http://jenkins:8081 \
-                        -r zap-baseline.html -J zap-baseline.json -I || true
+                        bash -c "mkdir -p /zap/wrk && zap-baseline.py -t http://jenkins:8081 -r zap-baseline.html -J zap-baseline.json -I" || true
 
                     mkdir -p zap-reports
                     docker cp zap-baseline:/zap/wrk/zap-baseline.html zap-reports/

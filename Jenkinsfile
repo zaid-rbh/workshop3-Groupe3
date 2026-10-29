@@ -4,6 +4,7 @@ pipeline {
     options {
         disableConcurrentBuilds()
     }
+
     environment {
         DOCKER_HOST = 'tcp://host.docker.internal:2375'
     }
@@ -28,14 +29,19 @@ pipeline {
         stage('DAST - ZAP Baseline') {
             steps {
                 sh '''
+                    if [ -f app.pid ]; then kill $(cat app.pid) 2>/dev/null || true; fi
+                    pkill -f devsecops-project || true
+                    sleep 2
+
                     JAR=$(ls target/*.jar | grep -v original | head -n 1)
-                    nohup java -jar "$JAR" --server.port=8081 > app.log 2>&1 &
+                    nohup java -jar "$JAR" --server.port=8081 --server.address=0.0.0.0 > app.log 2>&1 &
                     echo $! > app.pid
 
                     for i in $(seq 1 40); do
-                        curl -s -o /dev/null http://localhost:8081 && break
+                        curl -s -o /dev/null http://jenkins:8081 && break
                         sleep 3
                     done
+                    tail -n 20 app.log
 
                     docker rm -f zap-baseline || true
                     docker run --name zap-baseline --network zaid --user root \

@@ -2,8 +2,8 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME       = 'opssaad/devsecops'
-        IMAGE_TAG        = "1.0.${BUILD_NUMBER}"
+        IMAGE_NAME = 'opssaad/devsecops'
+        IMAGE_TAG = "1.0.${BUILD_NUMBER}"
     }
 
     stages {
@@ -72,8 +72,6 @@ pipeline {
                 }
             }
         }
-    }
-
 
         stage('Build Docker Image') {
             steps {

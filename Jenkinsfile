@@ -1,60 +1,82 @@
 pipeline {
     agent any
 
+    options {
+        disableConcurrentBuilds()
+    }
+
     environment {
-        IMAGE_NAME = 'opssaad/devsecops'
-        IMAGE_TAG = "1.0.${BUILD_NUMBER}"
+        DOCKER_HOST = 'tcp://host.docker.internal:2375'
+    }
+
+    tools {
+        maven 'Maven3'
     }
 
     stages {
-        stage('Checkout Code') {
+        stage('Checkout') {
             steps {
                 checkout scm
             }
         }
 
-        stage('Build & Test') {
+        stage('Build') {
             steps {
-                script {
-                    def mavenHome = tool 'Maven3'
-                    sh "${mavenHome}/bin/mvn -B clean package"
+                sh 'mvn -B clean verify'
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+                withSonarQubeEnv('SonarQube') {
+                    sh 'mvn -B org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey=workshop2 -Dsonar.projectName=workshop2 -Dsonar.host.url=$SONAR_HOST_URL -Dsonar.token=$SONAR_AUTH_TOKEN'
+                }
+            }
+        }
+
+        stage('Semgrep Scan') {
+            steps {
+                sh 'semgrep scan --config p/java --config p/owasp-top-ten --metrics=off --text --output semgrep-report.txt .'
+                sh 'cat semgrep-report.txt'
+            }
+        }
+
+        stage('DAST - ZAP Baseline') {
+            steps {
+                catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+                    sh '''
+                        if [ -f app.pid ]; then kill $(cat app.pid) 2>/dev/null || true; fi
+                        pkill -f devsecops-project || true
+                        sleep 2
+
+                        JAR=$(ls target/*.jar | grep -v original | head -n 1)
+                        nohup java -jar "$JAR" --server.port=8081 --server.address=0.0.0.0 > app.log 2>&1 &
+                        echo $! > app.pid
+
+                        for i in $(seq 1 40); do
+                            curl -s -o /dev/null http://jenkins:8081 && break
+                            sleep 3
+                        done
+                        tail -n 20 app.log
+
+                        docker rm -f zap-baseline || true
+                        docker run --name zap-baseline --network zaid --user root \
+                            ghcr.io/zaproxy/zaproxy:stable \
+                            bash -c "mkdir -p /zap/wrk && zap-baseline.py -t http://jenkins:8081 -r zap-baseline.html -J zap-baseline.json -I" || true
+
+                        mkdir -p zap-reports
+                        docker cp zap-baseline:/zap/wrk/zap-baseline.html zap-reports/
+                        docker cp zap-baseline:/zap/wrk/zap-baseline.json zap-reports/
+                        docker rm zap-baseline
+                    '''
                 }
             }
             post {
                 always {
-                    junit allowEmptyResults: true, testResults: 'target/surefire-reports/*.xml'
+                    sh 'kill $(cat app.pid) 2>/dev/null || true'
                 }
             }
         }
-
-
-        stage('SonarQube Analysis') {
-            steps {
-                script {
-                    def scannerHome = tool 'SonarQubeScanner'
-                    withSonarQubeEnv('SonarQube') {
-                        sh """
-                            \"${scannerHome}/bin/sonar-scanner\" \\
-                            -Dsonar.projectKey=devsecops \\
-                            -Dsonar.projectName=DevSecOps-VulnerableShop \\
-                            -Dsonar.sources=src/main/java \\
-                            -Dsonar.java.binaries=target/classes
-                        """
-                    }
-                }
-            }
-        }
-        stage('Semgrep SAST Scan') {
-            steps {
-                script {
-                    sh '''
-                       semgrep scan --config=p/ci --json -o semgrep-report.json || true
-                   '''
-                    archiveArtifacts artifacts: 'semgrep-report.json', allowEmptyArchive: true
-                }
-            }
-        }
-
 
         stage('OWASP Dependency-Check') {
             steps {
@@ -78,48 +100,6 @@ pipeline {
         always {
             archiveArtifacts artifacts: 'semgrep-report.txt, zap-reports/*, app.log, target/dependency-check-report.*', allowEmptyArchive: true
             echo 'Pipeline terminé'
-        }
-    }
-}
-
-        stage('Build Docker Image') {
-            steps {
-                script {
-                    sh "docker build -t ${IMAGE_NAME}:${IMAGE_TAG} -t ${IMAGE_NAME}:latest ."
-                }
-            }
-        }
-
-        stage('Push to Docker Hub') {
-            when {
-                not {
-                    changeRequest()
-                }
-            }
-            steps {
-                script {
-                    withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASSWORD')]) {
-                        sh '''
-                            set +x
-                            export DOCKER_CONFIG="$(mktemp -d)"
-                            trap 'docker logout >/dev/null 2>&1 || true; rm -rf "$DOCKER_CONFIG"' EXIT
-                            printf '%s' "$DOCKER_PASSWORD" | docker login --username "$DOCKER_USER" --password-stdin
-                            docker push "$IMAGE_NAME:$IMAGE_TAG"
-                            docker push "$IMAGE_NAME:latest"
-                        '''
-                    }
-                }
-            }
-
-    post {
-        always {
-            cleanWs(deleteDirs: true, notFailBuild: true)
-        }
-        success {
-            echo 'Pipeline finished successfully.'
-        }
-        failure {
-            echo "Pipeline failed - check the stage logs above."
         }
     }
 }

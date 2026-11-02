@@ -89,6 +89,24 @@ use the cart, place a simulated order, see your order history, try the file-uplo
 Java 21 · Spring Boot 3.5 · Spring MVC · Thymeleaf · Spring Data JPA (Hibernate) · H2 database ·
 Spring Security (weak on purpose) · Bootstrap 5 (bundled locally) · Maven
 
+## Jenkins pipeline
+
+The `Jenkinsfile` builds and tests the project, runs SonarQube and Semgrep scans, then builds and publishes
+the Docker image. Configure the Jenkins agent with Git, Java 21, the Docker CLI and access to a Docker daemon;
+install Semgrep on the agent and make the `semgrep` command available on `PATH`.
+
+Configure these Jenkins tools and integrations using the exact names referenced by the pipeline:
+
+| Jenkins configuration | Required name or setting |
+|---|---|
+| Maven installation | `Maven3` |
+| SonarQube Scanner installation | `SonarQubeScanner` |
+| SonarQube server configuration | `SonarQube`, with its authentication token configured in Jenkins |
+| Docker Hub credential | ID `docker-hub-credentials`, type **Username with password** |
+
+The pipeline also requires the Pipeline, Git, JUnit, Workspace Cleanup, SonarQube Scanner for Jenkins and
+Credentials Binding plugins. The JUnit report archiving is optional when no tests produce reports.
+
 ## Project layout
 
 ```text

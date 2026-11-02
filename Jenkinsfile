@@ -58,18 +58,21 @@ pipeline {
 
         stage('OWASP Dependency-Check') {
             steps {
-                script {
-                    def mavenHome = tool 'Maven3'
-                    try {
-                        withCredentials([string(credentialsId: 'nvd-api-key', variable: 'NVD_API_KEY')]) {
-                            sh "${mavenHome}/bin/mvn -B org.owasp:dependency-check-maven:13.0.0:check"
-                        }
-                    } finally {
-                        archiveArtifacts artifacts: 'target/dependency-check-report.html,target/dependency-check-report.json', allowEmptyArchive: true
+                catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+                    withCredentials([string(credentialsId: 'nvd-api-key', variable: 'NVD_API_KEY')]) {
+                        sh '''
+                            mvn -B org.owasp:dependency-check-maven:check \
+                              -DnvdApiKey=$NVD_API_KEY \
+                              -DdataDirectory=/var/jenkins_home/dependency-check-data \
+                              -Dformats=HTML,JSON \
+                              -DfailBuildOnCVSS=7 \
+                              -DossindexAnalyzerEnabled=false
+                        '''
                     }
                 }
             }
         }
+    }
 
 
         stage('Build Docker Image') {

@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         IMAGE_NAME       = 'opssaad/devsecops'
-        IMAGE_TAG        = "${BUILD_NUMBER}"
+        IMAGE_TAG        = "1.0.${BUILD_NUMBER}"
     }
 
     stages {

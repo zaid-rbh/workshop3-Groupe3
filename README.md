@@ -91,9 +91,10 @@ Spring Security (weak on purpose) · Bootstrap 5 (bundled locally) · Maven
 
 ## Jenkins pipeline
 
-The `Jenkinsfile` builds and tests the project, runs SonarQube and Semgrep scans, then builds and publishes
-the Docker image. Configure the Jenkins agent with Git, Java 21, the Docker CLI and access to a Docker daemon;
-install Semgrep on the agent and make the `semgrep` command available on `PATH`.
+The `Jenkinsfile` builds and tests the project, checks dependencies with OWASP Dependency-Check, runs
+SonarQube and Semgrep scans, then builds and publishes the Docker image. Configure the Jenkins agent with
+Git, Java 21, the Docker CLI and access to a Docker daemon; install Semgrep on the agent and make the
+`semgrep` command available on `PATH`.
 
 Configure these Jenkins tools and integrations using the exact names referenced by the pipeline:
 
@@ -103,9 +104,27 @@ Configure these Jenkins tools and integrations using the exact names referenced 
 | SonarQube Scanner installation | `SonarQubeScanner` |
 | SonarQube server configuration | `SonarQube`, with its authentication token configured in Jenkins |
 | Docker Hub credential | ID `docker-hub-credentials`, type **Username with password** |
+| NVD API key | ID `nvd-api-key`, type **Secret text** |
 
 The pipeline also requires the Pipeline, Git, JUnit, Workspace Cleanup, SonarQube Scanner for Jenkins and
-Credentials Binding plugins. The JUnit report archiving is optional when no tests produce reports.
+Credentials Binding plugins. The JUnit report archiving is optional when no tests produce reports. Add the
+NVD API key as a Jenkins secret-text credential; the pipeline exposes it only as `NVD_API_KEY` during the
+dependency scan. Dependency-Check runs in its own stage after the Maven build, writes HTML and JSON reports
+under `target/`, and fails the build when a vulnerability has a CVSS score of 7 or higher. Jenkins archives
+both reports, including when the scan fails. The first run downloads vulnerability data from NVD and can take
+longer than subsequent runs.
+
+### Dependency updates and remediation
+
+GitHub reads `.github/dependabot.yml` and checks Maven dependencies and the root Dockerfile weekly, opening
+pull requests when updates are available. Review each proposed version and its release notes, run the tests,
+and inspect the Dependency-Check report before merging. For a finding, identify whether the vulnerable library
+is declared directly or arrives transitively, update the dependency in `pom.xml` (or its managed version),
+then run the build and Dependency-Check again. Assess the affected code paths and the actual CVE advisory; do
+not suppress a finding without documenting why it does not apply. This is a learning project with intentionally
+vulnerable application code: update vulnerable dependencies without removing its deliberate application-level
+security exercises. The Jenkins Docker publish stage is skipped for multibranch pull requests; configure
+Jenkins as a multibranch pipeline to use this protection.
 
 ## Project layout
 

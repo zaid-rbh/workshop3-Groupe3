@@ -27,6 +27,7 @@ pipeline {
             }
         }
 
+
         stage('SonarQube Analysis') {
             steps {
                 script {
@@ -54,6 +55,23 @@ pipeline {
             }
         }
 
+
+        stage('OWASP Dependency-Check') {
+            steps {
+                script {
+                    def mavenHome = tool 'Maven3'
+                    try {
+                        withCredentials([string(credentialsId: 'nvd-api-key', variable: 'NVD_API_KEY')]) {
+                            sh "${mavenHome}/bin/mvn -B org.owasp:dependency-check-maven:13.0.0:check"
+                        }
+                    } finally {
+                        archiveArtifacts artifacts: 'target/dependency-check-report.html,target/dependency-check-report.json', allowEmptyArchive: true
+                    }
+                }
+            }
+        }
+
+
         stage('Build Docker Image') {
             steps {
                 script {
@@ -63,6 +81,11 @@ pipeline {
         }
 
         stage('Push to Docker Hub') {
+            when {
+                not {
+                    changeRequest()
+                }
+            }
             steps {
                 script {
                     withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASSWORD')]) {
@@ -85,7 +108,7 @@ pipeline {
             cleanWs(deleteDirs: true, notFailBuild: true)
         }
         success {
-            echo "Pipeline finished successfully: ${IMAGE_NAME}:${IMAGE_TAG} pushed to Docker Hub"
+            echo 'Pipeline finished successfully.'
         }
         failure {
             echo "Pipeline failed - check the stage logs above."

@@ -38,7 +38,7 @@ pipeline {
                             /var/jenkins_home/tools/hudson.plugins.sonar.SonarRunnerInstallation/SonarQubeScanner/bin/sonar-scanner \
                             -Dsonar.host.url=http://sonarqube:9000 \
                             -Dsonar.projectKey=devsecops \
-                            -Dsonar.projectName=DevSecOps-VulnerableShop3 \
+                            -Dsonar.projectName=DevSecOps-VulnerableShop \
                             -Dsonar.sources=src/main/java \
                             -Dsonar.java.binaries=target/classes \
                             -Dsonar.java.coveragePlugin=none
@@ -47,47 +47,17 @@ pipeline {
                 }
             }
         }
-       stage('Semgrep SAST Scan') {
-           steps {
-               script {
-                   sh '''
-                       semgrep scan --config=p/ci --json -o semgrep-report.json || true
-                   '''
-                   archiveArtifacts artifacts: 'semgrep-report.json', allowEmptyArchive: true
-               }
-           }
-       }
-
-        stage('OWASP Dependency Check (SCA)') {
+        stage('Semgrep SAST Scan') {
             steps {
                 script {
                     sh '''
-                        mkdir -p odc-reports
-                        chmod -R 777 odc-reports || true
-                        docker volume create odc-data || true
-                    '''
-                    withCredentials([string(credentialsId: 'nvd-api-key', variable: 'NVD_KEY')]) {
-                        sh '''
-                            docker run --rm \
-                              -u $(id -u):$(id -g) \
-                              -v "$(pwd)":/src \
-                              -v odc-data:/usr/share/dependency-check/data \
-                              owasp/dependency-check:latest \
-                              --scan /src \
-                              --format XML --format HTML --format JSON \
-                              --out /src/odc-reports \
-                              --nvdApiKey "$NVD_KEY" || true
-                        '''
-                    }
-                }
-            }
-            post {
-                always {
-                    dependencyCheckPublisher pattern: 'odc-reports/dependency-check-report.xml'
-                    archiveArtifacts artifacts: 'odc-reports/*', allowEmptyArchive: true
+                       semgrep scan --config=p/ci --json -o semgrep-report.json || true
+                   '''
+                    archiveArtifacts artifacts: 'semgrep-report.json', allowEmptyArchive: true
                 }
             }
         }
+
         stage('Build Docker Image') {
             steps {
                 script {

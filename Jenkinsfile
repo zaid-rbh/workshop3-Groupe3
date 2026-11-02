@@ -72,6 +72,15 @@ pipeline {
                 }
             }
         }
+    }
+
+    post {
+        always {
+            archiveArtifacts artifacts: 'semgrep-report.txt, zap-reports/*, app.log, target/dependency-check-report.*', allowEmptyArchive: true
+            echo 'Pipeline terminé'
+        }
+    }
+}
 
         stage('Build Docker Image') {
             steps {

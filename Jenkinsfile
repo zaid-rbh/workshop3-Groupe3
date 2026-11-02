@@ -27,7 +27,6 @@ pipeline {
             }
         }
 
-
         stage('SonarQube Analysis') {
             steps {
                 script {
@@ -46,41 +45,30 @@ pipeline {
         }
         stage('Semgrep SAST Scan') {
             steps {
-                script {
-                    sh '''
-                       semgrep scan --config=p/ci --json -o semgrep-report.json || true
-                   '''
+                sh 'semgrep scan --config=p/ci --json -o semgrep-report.json'
+            }
+            post {
+                always {
                     archiveArtifacts artifacts: 'semgrep-report.json', allowEmptyArchive: true
                 }
             }
         }
 
-
         stage('OWASP Dependency-Check') {
             steps {
-                catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+                script {
+                    def mavenHome = tool 'Maven3'
                     withCredentials([string(credentialsId: 'nvd-api-key', variable: 'NVD_API_KEY')]) {
-                        sh '''
-                            mvn -B org.owasp:dependency-check-maven:check \
-                              -DnvdApiKey=$NVD_API_KEY \
-                              -DdataDirectory=/var/jenkins_home/dependency-check-data \
-                              -Dformats=HTML,JSON \
-                              -DfailBuildOnCVSS=7 \
-                              -DossindexAnalyzerEnabled=false
-                        '''
+                        sh "${mavenHome}/bin/mvn -B org.owasp:dependency-check-maven:13.0.0:check"
                     }
                 }
             }
+            post {
+                always {
+                    archiveArtifacts artifacts: 'target/dependency-check-report.html,target/dependency-check-report.json', allowEmptyArchive: true
+                }
+            }
         }
-    }
-
-    post {
-        always {
-            archiveArtifacts artifacts: 'semgrep-report.txt, zap-reports/*, app.log, target/dependency-check-report.*', allowEmptyArchive: true
-            echo 'Pipeline terminé'
-        }
-    }
-}
 
         stage('Build Docker Image') {
             steps {
@@ -110,6 +98,8 @@ pipeline {
                     }
                 }
             }
+        }
+    }
 
     post {
         always {

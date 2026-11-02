@@ -45,6 +45,7 @@ pipeline {
         }
         stage('Semgrep SAST Scan') {
             steps {
+                sh 'pip3 install semgrep || true'
                 sh 'semgrep scan --config=p/ci --json -o semgrep-report.json'
             }
             post {

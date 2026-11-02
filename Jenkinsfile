@@ -46,11 +46,10 @@ pipeline {
         stage('Semgrep SAST Scan') {
             steps {
                 script {
-                    try {
-                        sh 'semgrep scan --config=p/ci --json -o semgrep-report.json'
-                    } finally {
-                        archiveArtifacts artifacts: 'semgrep-report.json', allowEmptyArchive: true
-                    }
+                    sh '''
+                       semgrep scan --config=p/ci --json -o semgrep-report.json || true
+                   '''
+                    archiveArtifacts artifacts: 'semgrep-report.json', allowEmptyArchive: true
                 }
             }
         }

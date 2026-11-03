@@ -42,25 +42,23 @@ pipeline {
 
                 stage('OWASP Dependency-Check') {
                     steps {
-                        script {
-                            def mavenHome = tool 'Maven3'
-                            withCredentials([string(credentialsId: 'nvd-api-key', variable: 'NVD_API_KEY')]) {
-                                // تم استخدام الإصدار 8.4.3 وتمرير مفتاح NVD API عبر الباراميتر لتجنب أي مشاكل في الاتصال
-                                sh "\"${mavenHome}/bin/mvn\" -B org.owasp:dependency-check-maven:8.4.3:check -DnvdApiKey=\"${NVD_API_KEY}\" -DautoUpdate=false || true"
-                            }
+                        withCredentials([string(credentialsId: 'nvd-api-key', variable: 'NVD_API_KEY')]) {
+                            sh '''
+                                mkdir -p reports/owasp
+                                cd Swapily-back
+                                ./mvnw -B org.owasp:dependency-check-maven:11.1.0:check \
+                                    -DnvdApiKey=${NVD_API_KEY} \
+                                    -DautoUpdate=true \
+                                    -DfailOnError=false \
+                                    -Dformat=HTML \
+                                    -Dodc.outputDirectory=../reports/owasp \
+                                    -Dossindex.enabled=false
+                            '''
                         }
                     }
                     post {
                         always {
-                            archiveArtifacts artifacts: 'target/dependency-check-report.html,target/dependency-check-report.json', allowEmptyArchive: true
-                            publishHTML([
-                                    allowMissing: true,
-                                    alwaysLinkToLastBuild: true,
-                                    keepAll: true,
-                                    reportDir: 'target',
-                                    reportFiles: 'dependency-check-report.html',
-                                    reportName: 'OWASP Security Report'
-                            ])
+                            archiveArtifacts artifacts: 'reports/owasp/dependency-check-report.html', allowEmptyArchive: true
                         }
                     }
                 }
@@ -134,7 +132,7 @@ pipeline {
                             allowMissing: true,
                             alwaysLinkToLastBuild: true,
                             keepAll: true,
-                            reportDir: 'target',
+                            reportDir: 'reports/owasp',
                             reportFiles: 'dependency-check-report.html',
                             reportName: 'OWASP Security Report'
                     ])

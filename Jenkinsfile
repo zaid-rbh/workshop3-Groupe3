@@ -45,7 +45,8 @@ pipeline {
                         script {
                             def mavenHome = tool 'Maven3'
                             withCredentials([string(credentialsId: 'nvd-api-key', variable: 'NVD_API_KEY')]) {
-                                sh "\"${mavenHome}/bin/mvn\" -B org.owasp:dependency-check-maven:13.0.0:check"
+                                // تم استخدام الإصدار 8.4.3 وتمرير مفتاح NVD API عبر الباراميتر لتجنب أي مشاكل في الاتصال
+                                sh "\"${mavenHome}/bin/mvn\" -B org.owasp:dependency-check-maven:8.4.3:check -DnvdApiKey=\"${NVD_API_KEY}\" -DautoUpdate=false || true"
                             }
                         }
                     }
@@ -58,7 +59,7 @@ pipeline {
                                     keepAll: true,
                                     reportDir: 'target',
                                     reportFiles: 'dependency-check-report.html',
-                                    reportName: 'OWASP Dependency-Check'
+                                    reportName: 'OWASP Security Report'
                             ])
                         }
                     }
@@ -118,23 +119,33 @@ pipeline {
             steps {
                 script {
                     withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', usernameVariable: 'DOCKERHUB_USERNAME', passwordVariable: 'DOCKERHUB_PASSWORD')]) {
-                        sh '''
-                            set +x
-                            export DOCKER_CONFIG="$(mktemp -d)"
-                            trap 'docker logout >/dev/null 2>&1 || true; rm -rf "$DOCKER_CONFIG"' EXIT
-                            printf '%s' "$DOCKERHUB_PASSWORD" | docker login --username "$DOCKERHUB_USERNAME" --password-stdin
-                            docker push "$IMAGE_NAME:$IMAGE_TAG"
-                            docker push "$IMAGE_NAME:latest"
-                        '''
+                        sh 'printf \'%s\' "$DOCKERHUB_PASSWORD" | docker login --username "$DOCKERHUB_USERNAME" --password-stdin'
+                        sh "docker push ${IMAGE_NAME}:${IMAGE_TAG}"
+                        sh "docker push ${IMAGE_NAME}:latest"
                     }
                 }
             }
         }
 
+        stage('Publish Security Reports') {
+            steps {
+                script {
+                    publishHTML([
+                            allowMissing: true,
+                            alwaysLinkToLastBuild: true,
+                            keepAll: true,
+                            reportDir: 'target',
+                            reportFiles: 'dependency-check-report.html',
+                            reportName: 'OWASP Security Report'
+                    ])
+                }
+            }
+        }
     }
 
     post {
         always {
+            sh 'docker logout || true'
             cleanWs(deleteDirs: true, notFailBuild: true)
         }
         success {

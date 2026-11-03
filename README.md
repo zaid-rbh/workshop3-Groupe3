@@ -106,9 +106,11 @@ Configure these Jenkins tools and integrations using the exact names referenced 
 | Docker Hub credential | ID `docker-hub-credentials`, type **Username with password** |
 | NVD API key | ID `nvd-api-key`, type **Secret text** |
 
-The pipeline also requires the Pipeline, Git, JUnit, Workspace Cleanup, SonarQube Scanner for Jenkins and
-Credentials Binding plugins. The JUnit report archiving is optional when no tests produce reports. Add the
-NVD API key as a Jenkins secret-text credential; the pipeline exposes it only as `NVD_API_KEY` during the
+The pipeline also requires the Pipeline, Git, JUnit, Workspace Cleanup, SonarQube Scanner for Jenkins,
+Credentials Binding and HTML Publisher plugins. Configure a SonarQube webhook pointing to your Jenkins URL
+with the `/sonarqube-webhook/` path so `waitForQualityGate` can receive the analysis result. The JUnit report
+archiving is optional when no tests produce reports. Add the NVD API key as a Jenkins secret-text credential;
+the pipeline exposes it only as `NVD_API_KEY` during the
 dependency scan. Dependency-Check runs in its own stage after the Maven build, writes HTML and JSON reports
 under `target/`, and fails the build when a vulnerability has a CVSS score of 7 or higher. Jenkins archives
 both reports, including when the scan fails. The first run downloads vulnerability data from NVD and can take

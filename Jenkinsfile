@@ -142,8 +142,6 @@ pipeline {
                 }
             }
         }
-    }
-
     post {
         always {
             sh 'docker logout || true'
@@ -156,4 +154,3 @@ pipeline {
             echo "Pipeline failed - check the stage logs above."
         }
     }
-}

@@ -42,26 +42,29 @@ pipeline {
 
                 stage('OWASP Dependency-Check') {
                     steps {
-                        withCredentials([string(credentialsId: 'nvd-api-key', variable: 'NVD_API_KEY')]) {
-                            sh '''
-                                mkdir -p reports/owasp
-                                cd Swapily-back
-                                ./mvnw -B org.owasp:dependency-check-maven:11.1.0:check \
-                                    -DnvdApiKey=${NVD_API_KEY} \
-                                    -DautoUpdate=true \
-                                    -DfailOnError=false \
-                                    -Dformat=HTML \
-                                    -Dodc.outputDirectory=../reports/owasp \
-                                    -Dossindex.enabled=false
-                            '''
-                        }
-                    }
-                    post {
-                        always {
-                            archiveArtifacts artifacts: 'reports/owasp/dependency-check-report.html', allowEmptyArchive: true
+                        catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+                            withCredentials([string(credentialsId: 'nvd-api-key', variable: 'NVD_API_KEY')]) {
+                                sh '''
+                            mvn -B org.owasp:dependency-check-maven:check \
+                              -DnvdApiKey=$NVD_API_KEY \
+                              -DdataDirectory=/var/jenkins_home/dependency-check-data \
+                              -Dformats=HTML,JSON \
+                              -DfailBuildOnCVSS=7 \
+                              -DossindexAnalyzerEnabled=false
+                        '''
+                            }
                         }
                     }
                 }
+            }
+
+            post {
+                always {
+                    archiveArtifacts artifacts: 'semgrep-report.txt, zap-reports/*, app.log, target/dependency-check-report.*', allowEmptyArchive: true
+                    echo 'Pipeline terminé'
+                }
+            }
+        }
             }
         }
 

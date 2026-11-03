@@ -51,7 +51,9 @@ pipeline {
                                     -DfailOnError=false \
                                     -Dformat=HTML \
                                     -Dodc.outputDirectory=reports/owasp \
-                                    -Dossindex.enabled=false || true
+                                    -Dossindex.enabled=false \
+                                    -Dmaven.wagon.http.ssl.ignore.validity.dates=true \
+                                    -Dmaven.wagon.http.ssl.allowall=true || true
                             '''
                         }
                     }

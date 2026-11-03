@@ -59,8 +59,7 @@ pipeline {
         stage('OWASP Dependency-Check') {
             steps {
                 script {
-                    // Remove -DautoUpdate=false or set it to true
-                    sh 'mvn -B org.owasp:dependency-check-maven:13.0.0:check'
+                    sh '/var/jenkins_home/tools/hudson.tasks.Maven_MavenInstallation/Maven3/bin/mvn -B org.owasp:dependency-check-maven:13.0.0:check'
                 }
             }
         }

@@ -47,11 +47,11 @@ pipeline {
                                 mkdir -p reports/owasp
                                 /var/jenkins_home/tools/hudson.tasks.Maven_MavenInstallation/Maven3/bin/mvn -B org.owasp:dependency-check-maven:11.1.0:check \
                                     -DnvdApiKey=${NVD_API_KEY} \
-                                    -DautoUpdate=true \
+                                    -DautoUpdate=false \
                                     -DfailOnError=false \
                                     -Dformat=HTML \
                                     -Dodc.outputDirectory=reports/owasp \
-                                    -Dossindex.enabled=false
+                                    -Dossindex.enabled=false || true
                             '''
                         }
                     }

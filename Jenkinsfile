@@ -45,13 +45,12 @@ pipeline {
                         withCredentials([string(credentialsId: 'nvd-api-key', variable: 'NVD_API_KEY')]) {
                             sh '''
                                 mkdir -p reports/owasp
-                                cd Swapily-back
-                                ./mvnw -B org.owasp:dependency-check-maven:11.1.0:check \
+                                mvn -B org.owasp:dependency-check-maven:11.1.0:check \
                                     -DnvdApiKey=${NVD_API_KEY} \
                                     -DautoUpdate=true \
                                     -DfailOnError=false \
                                     -Dformat=HTML \
-                                    -Dodc.outputDirectory=../reports/owasp \
+                                    -Dodc.outputDirectory=reports/owasp \
                                     -Dossindex.enabled=false
                             '''
                         }

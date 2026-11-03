@@ -45,7 +45,7 @@ pipeline {
                         withCredentials([string(credentialsId: 'nvd-api-key', variable: 'NVD_API_KEY')]) {
                             sh '''
                                 mkdir -p reports/owasp
-                                mvn -B org.owasp:dependency-check-maven:11.1.0:check \
+                                /var/jenkins_home/tools/hudson.tasks.Maven_MavenInstallation/Maven3/bin/mvn -B org.owasp:dependency-check-maven:11.1.0:check \
                                     -DnvdApiKey=${NVD_API_KEY} \
                                     -DautoUpdate=true \
                                     -DfailOnError=false \

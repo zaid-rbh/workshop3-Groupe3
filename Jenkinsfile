@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         IMAGE_NAME = 'opssaad/devsecops'
-        IMAGE_TAG = "1.0.${BUILD_NUMBER}"
+        IMAGE_TAG = "1.0.${env.BUILD_NUMBER}"
     }
 
     stages {
@@ -43,6 +43,7 @@ pipeline {
                 }
             }
         }
+
         stage('Semgrep SAST Scan') {
             steps {
                 sh 'pip3 install semgrep || true'
@@ -60,7 +61,7 @@ pipeline {
                 script {
                     def mavenHome = tool 'Maven3'
                     withCredentials([string(credentialsId: 'nvd-api-key', variable: 'NVD_API_KEY')]) {
-                        sh "${mavenHome}/bin/mvn -B org.owasp:dependency-check-maven:13.0.0:check"
+                        sh "${mavenHome}/bin/mvn -B org.owasp:dependency-check-maven:13.0.0:check -Ddependency.check.nvdApiKey=${NVD_API_KEY}"
                     }
                 }
             }
@@ -100,6 +101,27 @@ pipeline {
                 }
             }
         }
+
+        // 📊 مرحلة التقارير المرئية المضافة حديثاً لتناسب مسارات Maven OWASP
+        stage('Publish Security Reports') {
+            steps {
+                script {
+                    publishHTML([
+                            allowMissing: true,
+                            alwaysLinkToLastBuild: true,
+                            keepAll: true,
+                            reportDir: 'target',
+                            reportFiles: 'dependency-check-report.html',
+                            reportName: 'OWASP Security Report'
+                    ])
+
+                    recordIssues(
+                            tool: semgrep(pattern: 'semgrep-report.json'),
+                            qualityGates: [[threshold: 1, type: 'TOTAL', unstable: true]]
+                    )
+                }
+            }
+        }
     }
 
     post {
@@ -107,7 +129,7 @@ pipeline {
             cleanWs(deleteDirs: true, notFailBuild: true)
         }
         success {
-            echo 'Pipeline finished successfully.'
+            echo 'Pipeline finished successfully with visual security reports!'
         }
         failure {
             echo "Pipeline failed - check the stage logs above."

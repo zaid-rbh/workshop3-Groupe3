@@ -2,8 +2,9 @@ pipeline {
     agent any
 
     environment {
+        SONAR_TOKEN = credentials('sonarqube-token')
         IMAGE_NAME = 'opssaad/devsecops'
-        IMAGE_TAG = "1.0.${env.BUILD_NUMBER}"
+        IMAGE_TAG = "v1.0.${env.BUILD_NUMBER}"
     }
 
     stages {
@@ -31,6 +32,7 @@ pipeline {
             parallel {
                 stage('Semgrep SAST Scan') {
                     steps {
+                        sh 'pip3 install semgrep || true'
                         sh 'semgrep scan --config=p/ci --json -o semgrep-report.json'
                     }
                     post {
@@ -43,23 +45,7 @@ pipeline {
                 stage('OWASP Dependency-Check') {
                     steps {
                         script {
-                            def mavenHome = tool 'Maven3'
-                            withCredentials([string(credentialsId: 'nvd-api-key', variable: 'NVD_API_KEY')]) {
-                                sh "\"${mavenHome}/bin/mvn\" -B org.owasp:dependency-check-maven:13.0.0:check"
-                            }
-                        }
-                    }
-                    post {
-                        always {
-                            archiveArtifacts artifacts: 'target/dependency-check-report.html,target/dependency-check-report.json', allowEmptyArchive: true
-                            publishHTML([
-                                    allowMissing: true,
-                                    alwaysLinkToLastBuild: true,
-                                    keepAll: true,
-                                    reportDir: 'target',
-                                    reportFiles: 'dependency-check-report.html',
-                                    reportName: 'OWASP Dependency-Check'
-                            ])
+                            sh '/var/jenkins_home/tools/hudson.tasks.Maven_MavenInstallation/Maven3/bin/mvn -B org.owasp:dependency-check-maven:8.4.3:check -DautoUpdate=false -Dossindex.enabled=false || true'
                         }
                     }
                 }
@@ -73,12 +59,12 @@ pipeline {
                     withSonarQubeEnv('SonarQube') {
                         withEnv(["SONAR_SCANNER_HOME=${scannerHome}"]) {
                             sh '''
-                                export SONAR_TOKEN="$SONAR_AUTH_TOKEN"
                                 "$SONAR_SCANNER_HOME/bin/sonar-scanner" \
                                 -Dsonar.projectKey=devsecops \
                                 -Dsonar.projectName=DevSecOps-VulnerableShop \
                                 -Dsonar.sources=src/main/java \
-                                -Dsonar.java.binaries=target/classes
+                                -Dsonar.java.binaries=target/classes \
+                                -Dsonar.token="$SONAR_TOKEN"
                             '''
                         }
                     }
@@ -118,23 +104,33 @@ pipeline {
             steps {
                 script {
                     withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', usernameVariable: 'DOCKERHUB_USERNAME', passwordVariable: 'DOCKERHUB_PASSWORD')]) {
-                        sh '''
-                            set +x
-                            export DOCKER_CONFIG="$(mktemp -d)"
-                            trap 'docker logout >/dev/null 2>&1 || true; rm -rf "$DOCKER_CONFIG"' EXIT
-                            printf '%s' "$DOCKERHUB_PASSWORD" | docker login --username "$DOCKERHUB_USERNAME" --password-stdin
-                            docker push "$IMAGE_NAME:$IMAGE_TAG"
-                            docker push "$IMAGE_NAME:latest"
-                        '''
+                        sh 'printf \'%s\' "$DOCKERHUB_PASSWORD" | docker login --username "$DOCKERHUB_USERNAME" --password-stdin'
+                        sh "docker push ${IMAGE_NAME}:${IMAGE_TAG}"
+                        sh "docker push ${IMAGE_NAME}:latest"
                     }
                 }
             }
         }
 
+        stage('Publish Security Reports') {
+            steps {
+                script {
+                    publishHTML([
+                            allowMissing: true,
+                            alwaysLinkToLastBuild: true,
+                            keepAll: true,
+                            reportDir: 'target',
+                            reportFiles: 'dependency-check-report.html',
+                            reportName: 'OWASP Security Report'
+                    ])
+                }
+            }
+        }
     }
 
     post {
         always {
+            sh 'docker logout || true'
             cleanWs(deleteDirs: true, notFailBuild: true)
         }
         success {

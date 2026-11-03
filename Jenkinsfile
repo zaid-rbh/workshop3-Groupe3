@@ -59,14 +59,8 @@ pipeline {
         stage('OWASP Dependency-Check') {
             steps {
                 script {
-                    def mavenHome = tool 'Maven3'
-                    // Runs dependency-check using local cache without forcing an online NVD API update
-                    sh "${mavenHome}/bin/mvn -B org.owasp:dependency-check-maven:13.0.0:check -DautoUpdate=false"
-                }
-            }
-            post {
-                always {
-                    archiveArtifacts artifacts: 'target/dependency-check-report.html,target/dependency-check-report.json', allowEmptyArchive: true
+                    // Remove -DautoUpdate=false or set it to true
+                    sh 'mvn -B org.owasp:dependency-check-maven:13.0.0:check'
                 }
             }
         }

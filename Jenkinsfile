@@ -45,7 +45,7 @@ pipeline {
                 stage('OWASP Dependency-Check') {
                     steps {
                         script {
-                            sh '/var/jenkins_home/tools/hudson.tasks.Maven_MavenInstallation/Maven3/bin/mvn -B org.owasp:dependency-check-maven:8.4.3:check'
+                            sh '/var/jenkins_home/tools/hudson.tasks.Maven_MavenInstallation/Maven3/bin/mvn -B org.owasp:dependency-check-maven:8.4.3:check -DautoUpdate=false -Dossindex.enabled=false'
                         }
                     }
                 }

@@ -40,7 +40,7 @@ mvn -B clean verify
 Le groupe travaille sur le même projet. Chaque membre dispose de sa propre branche et de son propre pipeline Jenkins. La configuration Dependabot et les alertes se trouvent sur `main`, car GitHub n'analyse que la branche par défaut. Le README est commun.
 
 | Membre | Branche |
-|---|---|---|
+|---|---|
 | Zaid Rabah | `zaid` |
 | saad alghem | saad |
 | soufiane hajib |  | 

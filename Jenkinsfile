@@ -116,7 +116,13 @@ pipeline {
         stage('Trivy Container Scan') {
             steps {
                 script {
-                    sh "trivy image --severity HIGH,CRITICAL ${IMAGE_NAME}:${IMAGE_TAG}"
+                    // كيقوم بتوليد فيشي JSON ديال التقارير بحال Semgrep
+                    sh "trivy image --format json -o trivy-report.json --severity HIGH,CRITICAL ${IMAGE_NAME}:${IMAGE_TAG} || true"
+                }
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: 'trivy-report.json', allowEmptyArchive: true
                 }
             }
         }

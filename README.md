@@ -152,8 +152,6 @@ JRE 21 allégée exposant le port 8080.
 | Maintenabilité | **0** problème – note **A** |
 | Hotspots revus | — (note **A**) |
 | Couverture de tests | 0,0 % |
-| Duplications | 0,0 % |
-
 **Analyse :** le Quality Gate est « Passed » (la porte par défaut ne porte que sur le *nouveau* code), mais
 la note de sécurité **E** montre clairement les failles volontairement présentes dans l'application. La
 couverture est à 0 % car le projet ne contient pas de tests automatisés.

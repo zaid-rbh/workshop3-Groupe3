@@ -116,7 +116,7 @@ pipeline {
         stage('Trivy Container Scan') {
             steps {
                 script {
-                    sh "docker run --rm aquasec/trivy image --severity HIGH,CRITICAL ${IMAGE_NAME}:${IMAGE_TAG}"
+                    sh "trivy image --severity HIGH,CRITICAL ${IMAGE_NAME}:${IMAGE_TAG}"
                 }
             }
         }
@@ -127,7 +127,7 @@ pipeline {
                     sh '''
                         mkdir -p reports/zap
                         chmod 777 reports/zap
-                        docker run --user root --rm -v "\$(pwd)/reports/zap:/zap/wrk:rw" -t zaproxy/zap-stable zap-baseline.py -t http://host.docker.internal:8080 -r zap-report.html || true
+                        docker run --user root --rm -v "\$(pwd)/reports/zap:/zap/wrk:rw" -t zaproxy/zap-stable zap-baseline.py -t http://host.docker.internal:8080/login -r zap-report.html || true
                         ls -la reports/zap
                     '''
                 }

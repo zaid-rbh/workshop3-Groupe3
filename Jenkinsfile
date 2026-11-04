@@ -42,20 +42,23 @@ pipeline {
 
                 stage('OWASP Dependency-Check') {
                     steps {
-                        withCredentials([string(credentialsId: 'nvd-api-key', variable: 'NVD_API_KEY')]) {
-                            sh '''
-                                mkdir -p reports/owasp
-                                /var/jenkins_home/tools/hudson.tasks.Maven_MavenInstallation/Maven3/bin/mvn -B org.owasp:dependency-check-maven:11.1.0:check \
-                                    -DnvdApiKey=${NVD_API_KEY} \
-                                    -DautoUpdate=false \
-                                    -DfailOnError=false \
-                                    -Dformat=HTML \
-                                    -Dodc.outputDirectory=reports/owasp \
-                                    -Dossindex.enabled=false \
-                                    -Dmaven.wagon.http.ssl.insecure=true \
-                                    -Dmaven.wagon.http.ssl.ignore.validity.dates=true \
-                                    -Dmaven.wagon.http.ssl.allowall=true || true
-                            '''
+                        script {
+                            def mavenHome = tool 'Maven3'
+                            withCredentials([string(credentialsId: 'nvd-api-key', variable: 'NVD_API_KEY')]) {
+                                sh """
+                                    mkdir -p reports/owasp
+                                    ${mavenHome}/bin/mvn -B org.owasp:dependency-check-maven:11.1.0:check \\
+                                        -DnvdApiKey=\${NVD_API_KEY} \\
+                                        -DautoUpdate=true \\
+                                        -DfailOnError=false \\
+                                        -Dformat=HTML \\
+                                        -Dodc.outputDirectory=reports/owasp \\
+                                        -Dossindex.enabled=false \\
+                                        -Dmaven.wagon.http.ssl.insecure=true \\
+                                        -Dmaven.wagon.http.ssl.ignore.validity.dates=true \\
+                                        -Dmaven.wagon.http.ssl.allowall=true || true
+                                """
+                            }
                         }
                     }
                     post {
@@ -106,6 +109,22 @@ pipeline {
             steps {
                 script {
                     sh "docker build -t ${IMAGE_NAME}:${IMAGE_TAG} -t ${IMAGE_NAME}:latest ."
+                }
+            }
+        }
+
+        stage('OWASP ZAP Baseline Scan') {
+            steps {
+                script {
+                    sh '''
+                        mkdir -p reports/zap
+                        docker run --rm -v \$(pwd)/reports/zap:/zap/wrk:rw -t owasp/zap2docker-stable zap-baseline.py -t http://host.docker.internal:8080 -r zap-report.html || true
+                    '''
+                }
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: 'reports/zap/zap-report.html', allowEmptyArchive: true
                 }
             }
         }

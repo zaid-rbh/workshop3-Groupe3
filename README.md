@@ -6,8 +6,8 @@ A small online shop built with Java and Spring Boot, **made insecure on purpose*
 > Never deploy it on a server, a shared network or the internet.
 > It only listens on `127.0.0.1` and uses fictional data.
 
-**What is it for?** Practising source-code security review. Security analysis tools will be chosen and used
-separately during the course. This project has **not** been scanned or audited by any tool.
+**What is it for?** Practising source-code and dependency security review. Examples of security scans
+performed during the course are documented below.
 
 ---
 
@@ -91,10 +91,9 @@ Spring Security (weak on purpose) · Bootstrap 5 (bundled locally) · Maven
 
 ## Jenkins pipeline
 
-The `Jenkinsfile` builds and tests the project, checks dependencies with OWASP Dependency-Check, runs
-SonarQube and Semgrep scans, then builds and publishes the Docker image. Configure the Jenkins agent with
-Git, Java 21, the Docker CLI and access to a Docker daemon; install Semgrep on the agent and make the
-`semgrep` command available on `PATH`.
+The `Jenkinsfile` builds and tests the project, runs SonarQube, Semgrep and OWASP Dependency-Check scans,
+then builds and publishes the Docker image. Configure the Jenkins agent with Git, Java 21, the Docker CLI
+and access to a Docker daemon; install Semgrep on the agent and make the `semgrep` command available on `PATH`.
 
 Configure these Jenkins tools and integrations using the exact names referenced by the pipeline:
 
@@ -107,26 +106,116 @@ Configure these Jenkins tools and integrations using the exact names referenced 
 | NVD API key | ID `nvd-api-key`, type **Secret text** |
 
 The pipeline also requires the Pipeline, Git, JUnit, Workspace Cleanup, SonarQube Scanner for Jenkins,
-Credentials Binding and HTML Publisher plugins. Configure a SonarQube webhook pointing to your Jenkins URL
-with the `/sonarqube-webhook/` path so `waitForQualityGate` can receive the analysis result. The JUnit report
-archiving is optional when no tests produce reports. Add the NVD API key as a Jenkins secret-text credential;
-the pipeline exposes it only as `NVD_API_KEY` during the
-dependency scan. Dependency-Check runs in its own stage after the Maven build, writes HTML and JSON reports
-under `target/`, and fails the build when a vulnerability has a CVSS score of 7 or higher. Jenkins archives
-both reports, including when the scan fails. The first run downloads vulnerability data from NVD and can take
-longer than subsequent runs.
+Credentials Binding and HTML Publisher plugins. Configure the SonarQube webhook to point to the Jenkins
+`/sonarqube-webhook/` endpoint. The JUnit report archiving is optional when no tests produce reports.
 
-### Dependency updates and remediation
+---
 
-GitHub reads `.github/dependabot.yml` and checks Maven dependencies and the root Dockerfile weekly, opening
-pull requests when updates are available. Review each proposed version and its release notes, run the tests,
-and inspect the Dependency-Check report before merging. For a finding, identify whether the vulnerable library
-is declared directly or arrives transitively, update the dependency in `pom.xml` (or its managed version),
-then run the build and Dependency-Check again. Assess the affected code paths and the actual CVE advisory; do
-not suppress a finding without documenting why it does not apply. This is a learning project with intentionally
-vulnerable application code: update vulnerable dependencies without removing its deliberate application-level
-security exercises. The Jenkins Docker publish stage is skipped for multibranch pull requests; configure
-Jenkins as a multibranch pipeline to use this protection.
+# Rapport – WorkShop 2 : Analyse SAST avec SonarQube et Semgrep
+
+**Groupe :** Groupe 3 · **Branche :** `saad-workshop2` · **Projet :** DevSecOps-VulnerableShop (Spring Boot, Java 21)
+
+## 1. Objectif
+
+Mettre en place une chaîne CI/CD sous **Jenkins** qui compile le projet, puis l'analyse avec deux outils
+de **SAST** (analyse statique du code source) :
+
+- **SonarQube** : qualité du code et vulnérabilités (sécurité, fiabilité, maintenabilité) ;
+- **Semgrep** : détection de motifs dangereux par règles (`p/ci`), rapport JSON archivé.
+
+L'image Docker de l'application est ensuite construite et publiée sur Docker Hub.
+
+## 2. Pipeline Jenkins
+
+Le pipeline est défini dans le fichier [`Jenkinsfile`](Jenkinsfile) à la racine du dépôt.
+
+| # | Étape | Description |
+|---|---|---|
+| 1 | Checkout Code | Récupération du code depuis GitHub (`checkout scm`). |
+| 2 | Build & Test | `mvn -B clean package` avec l'outil Maven `Maven3` ; publication des rapports JUnit. |
+| 3 | Security Scans | Semgrep et OWASP Dependency-Check s'exécutent en parallèle ; leurs rapports sont archivés lorsqu'ils existent. |
+| 4 | SonarQube Analysis | `sonar-scanner` sur `src/main/java` (clé de projet `devsecops`). |
+| 5 | Quality Gate Check | Attente du résultat SonarQube avant les étapes Docker. |
+| 6 | Build Docker Image | Construction de `opssaad/devsecops:1.0.<BUILD_NUMBER>` et `latest` via le [`Dockerfile`](Dockerfile). |
+| 7 | Push to Docker Hub | Connexion avec l'identifiant Jenkins `docker-hub-credentials`, puis `docker push` hors pull requests. |
+| 8 | Publish Security Reports | Publication du rapport HTML OWASP s'il est disponible. |
+
+Le `Dockerfile` utilise un build en deux étapes : compilation avec Maven (Temurin 21), puis image d'exécution
+JRE 21 allégée exposant le port 8080.
+
+## 3. Résultats SonarQube
+
+![Tableau de bord SonarQube](docs/images/sonarqube-dashboard.png)
+
+| Indicateur | Résultat |
+|---|---|
+| Quality Gate | **Passed** |
+| Taille analysée | 1,3 k lignes de code (Java) |
+| Sécurité | **7** problèmes – note **E** |
+| Fiabilité | **1** problème – note **D** |
+| Maintenabilité | **0** problème – note **A** |
+| Hotspots revus | — (note **A**) |
+| Couverture de tests | 0,0 % |
+**Analyse :** le Quality Gate est « Passed » (la porte par défaut ne porte que sur le *nouveau* code), mais
+la note de sécurité **E** montre clairement les failles volontairement présentes dans l'application. La
+couverture est à 0 % car le projet ne contient pas de tests automatisés.
+
+## 4. Résultats Semgrep
+
+![Exécution de Semgrep dans Jenkins](docs/images/semgrep-scan.png)
+
+Semgrep a analysé **64 fichiers suivis par git** avec **160 règles** de la communauté (`p/ci`) :
+
+| Langage | Règles | Fichiers |
+|---|---|---|
+| Multilangage | 2 | 64 |
+| Java | 32 | 35 |
+| HTML | 1 | 18 |
+| JavaScript | 16 | 1 |
+| YAML | 12 | 1 |
+| Dockerfile | 2 | 1 |
+
+Le détail des résultats est dans l'artefact `semgrep-report.json` de chaque build Jenkins.
+
+## 5. Résultats OWASP Dependency-Check
+
+![Rapport OWASP Dependency-Check](docs/images/owasp-dependency-check.png)
+
+OWASP Dependency-Check analyse les dépendances tierces afin d'identifier les vulnérabilités connues.
+La capture montre le rapport HTML du projet, généré avec la version **11.1.0** de l'outil le 4 novembre 2026.
+Elle ne montre pas le détail des vulnérabilités détectées ; consultez le rapport complet pour les examiner.
+
+Dans Jenkins, le scan utilise la clé NVD associée au credential `nvd-api-key` et archive le rapport
+`reports/owasp/dependency-check-report.html` lorsqu'il existe. L'étape de publication HTML intervient après
+les étapes Docker. Dans la configuration actuelle, les erreurs du scan OWASP sont ignorées et ne bloquent
+donc pas le pipeline.
+
+## 6. Résultats Dependabot
+
+Dependabot surveille les dépendances Maven et les images Docker chaque semaine, selon la configuration
+dans [`.github/dependabot.yml`](.github/dependabot.yml).
+
+![Alertes de sécurité Dependabot](docs/images/dependabot-alerts.png)
+
+Lors de la capture, GitHub affichait **10 alertes ouvertes**, notamment pour Log4j et Apache Commons
+Collections.
+
+![Pull requests Dependabot](docs/images/dependabot-pull-requests.png)
+
+La capture montre **3 pull requests ouvertes** proposant des mises à jour de Spring Boot, Log4j et
+Commons Collections. Ces résultats reflètent l'état du dépôt au moment des captures ; les propositions
+doivent être vérifiées et testées avant leur fusion.
+
+## 7. Conclusion
+
+- Le projet **compile sans erreur** (étape *Build & Test* réussie).
+- Le pipeline automatise la compilation, deux analyses SAST complémentaires, un contrôle des dépendances
+  et la publication de l'image.
+- SonarQube a signalé 7 problèmes de sécurité et 1 de fiabilité ; Semgrep a parcouru tous les fichiers
+  Java, HTML, JavaScript et le Dockerfile.
+
+**Pistes d'amélioration :** rendre le contrôle OWASP bloquant en cas d'erreur ou de vulnérabilité critique,
+ajouter des tests unitaires pour mesurer la couverture, puis corriger les failles détectées.
 
 ## Project layout
 

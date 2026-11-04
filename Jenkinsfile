@@ -49,7 +49,7 @@ pipeline {
                     mkdir -p reports/owasp
                     ${mavenHome}/bin/mvn -B org.owasp:dependency-check-maven:11.1.0:check \\
                         -DnvdApiKey=\${NVD_API_KEY} \\
-                        -DautoUpdate=false \\
+                        -DautoUpdate=true \\
                         -DfailOnError=false \\
                         -Dformat=HTML \\
                         -Dodc.outputDirectory=reports/owasp \\

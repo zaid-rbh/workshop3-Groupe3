@@ -9,7 +9,6 @@ Projet **VulnerableShop** (Java 21 / Spring Boot / Maven), volontairement vulné
 
 Les deux workshops sont regroupés dans **un seul pipeline Jenkins** (voir la section 5).
 
-> Les cases marquées `À COMPLÉTER` correspondent à des résultats qui ne sont pas encore relevés. Aucun résultat n'est inventé dans ce document.
 
 ---
 
@@ -40,11 +39,11 @@ mvn -B clean verify
 
 Le groupe travaille sur le même projet. Chaque membre dispose de sa propre branche et de son propre pipeline Jenkins. La configuration Dependabot et les alertes se trouvent sur `main`, car GitHub n'analyse que la branche par défaut. Le README est commun.
 
-| Membre | Branche | Pipeline |
+| Membre | Branche |
 |---|---|---|
-| Zaid | `zaid` | `Jenkinsfile` de la branche `zaid` |
-| À COMPLÉTER | À COMPLÉTER | À COMPLÉTER |
-| À COMPLÉTER | À COMPLÉTER | À COMPLÉTER |
+| Zaid Rabah | `zaid` |
+| saad alghem | saad |
+| soufiane hajib |  | 
 
 ---
 
@@ -130,7 +129,7 @@ Le premier téléchargement de la base NVD (environ 413 000 enregistrements) a d
 | `log4j-core` | 2.14.1 | CVE-2021-44228 | 10.0 |
 | `log4j-core` | 2.14.1 | CVE-2021-45046 | 9.0 |
 | `log4j-core` | 2.14.1 | CVE-2021-44832 | 6.6 |
-| `log4j-core` | 2.14.1 | CVE-2021-45105 | À COMPLÉTER (inférieur à 7) |
+| `log4j-core` | 2.14.1 | CVE-2021-45105 | Inférieur à 7 (non bloquant) |
 
 Le build échoue comme prévu, car trois CVE dépassent le seuil de 7. Dependabot et Dependency-Check ont détecté les mêmes deux bibliothèques.
 
@@ -139,26 +138,27 @@ Le build échoue comme prévu, car trois CVE dépassent le seuil de 7. Dependabo
 ![Résumé du rapport Dependency-Check](screenshots/w3-05-owasp-report-before.png)
 ![Détail d'une CVE](screenshots/w3-06-owasp-cve-detail.png)
 ![Pipeline en échec (seuil CVSS 7)](screenshots/w3-07-pipeline-fail-cvss7.png)
+![Console : CVE et scores CVSS](screenshots/w3-07b-console-cvss.png)
 
 ### 3.3 Corrections
 
-La correction consiste à mettre à jour les deux dépendances vers les versions corrigées indiquées par les alertes Dependabot, puis à vérifier la compilation avec `mvn -B clean verify`.
+Ce workshop a pour objectif de tester les outils et de détecter les vulnérabilités : **aucune correction n'a été appliquée au code**, et les versions vulnérables ont été conservées volontairement. Le pipeline reste donc en échec au stage Dependency-Check, ce qui montre que le seuil CVSS 7 bloque bien un build contenant des dépendances critiques.
 
-| Dépendance | Avant | Après |
+Pour corriger ces vulnérabilités, il faudrait mettre à jour les deux dépendances dans le `pom.xml` vers les versions corrigées indiquées par les alertes Dependabot, puis vérifier la compilation avec `mvn -B clean verify` et relancer le scan.
+
+| Dépendance | Version vulnérable | Correction recommandée |
 |---|---|---|
-| `commons-collections` | 3.2.1 | À COMPLÉTER |
-| `log4j-core` | 2.14.1 | À COMPLÉTER |
+| `commons-collections` | 3.2.1 | Version corrigée indiquée par Dependabot |
+| `log4j-core` | 2.14.1 | Version corrigée indiquée par Dependabot |
 
-| Indicateur | Avant | Après |
-|---|---|---|
-| Alertes Dependabot ouvertes | 9 | À COMPLÉTER |
-| Dépendances vulnérables (Dependency-Check) | 2 | À COMPLÉTER |
-| CVE de score supérieur ou égal à 7 | 3 | À COMPLÉTER |
-| Pipeline | Échec (seuil CVSS 7) | À COMPLÉTER |
+**Bilan de l'état testé :**
 
-![Alertes fermées](screenshots/w3-08-dependabot-after.png)
-![Rapport après correction](screenshots/w3-09-owasp-report-after.png)
-![Pipeline réussi](screenshots/w3-10-pipeline-success.png)
+| Indicateur | Valeur |
+|---|---|
+| Alertes Dependabot ouvertes | 9 |
+| Dépendances vulnérables (Dependency-Check) | 2 |
+| CVE de score supérieur ou égal à 7 | 3 |
+| Pipeline | Échec du stage Dependency-Check (seuil CVSS 7) |
 
 ---
 
@@ -182,24 +182,31 @@ Les rapports sont copiés hors du conteneur ZAP avec `docker cp`, car un volume 
 
 ### 4.2 Résultats du scan baseline
 
-> À COMPLÉTER après lecture du rapport `zap-baseline.html`.
+Le rapport a été généré par ZAP 2.17.0 sur la cible `http://jenkins:8081` le 4 novembre 2026. Il contient 16 alertes :
 
 | Niveau de risque | Nombre d'alertes |
 |---|---|
-| High | À COMPLÉTER |
-| Medium | À COMPLÉTER |
-| Low | À COMPLÉTER |
+| High | 0 |
+| Medium | 3 |
+| Low | 7 |
+| Informational | 6 |
+| Faux positifs | 0 |
 
-**Cookies et en-têtes :**
+**Alertes détaillées (cookies et en-têtes) :**
 
-| Alerte | Présente | Risque | Correction recommandée |
+| Alerte | Risque | URL concernée | Correction recommandée |
 |---|---|---|---|
-| Cookie sans drapeau `HttpOnly` | À COMPLÉTER | À COMPLÉTER | `server.servlet.session.cookie.http-only=true` |
-| Cookie sans drapeau `Secure` | À COMPLÉTER | À COMPLÉTER | `server.servlet.session.cookie.secure=true` (utile en HTTPS) |
-| Cookie sans attribut `SameSite` | À COMPLÉTER | À COMPLÉTER | `server.servlet.session.cookie.same-site=lax` |
-| En-tête anti-clickjacking manquant | À COMPLÉTER | À COMPLÉTER | `X-Frame-Options` ou directive CSP `frame-ancestors` |
-| `X-Content-Type-Options` manquant | À COMPLÉTER | À COMPLÉTER | `X-Content-Type-Options: nosniff` |
-| Content Security Policy absente | À COMPLÉTER | À COMPLÉTER | Définir une CSP dans `SecurityConfig` |
+| Cookie No HttpOnly Flag (cookie `JSESSIONID`) | Low | `/login` (POST) | Activer `HttpOnly` : `server.servlet.session.cookie.http-only=true` |
+| Cookie without SameSite Attribute (cookie `JSESSIONID`) | Low | `/login` (POST) | Définir `SameSite` à `lax` ou `strict` : `server.servlet.session.cookie.same-site=lax` |
+| Missing Anti-clickjacking Header | Medium | `/`, `/login` (3 instances) | Ajouter `X-Frame-Options` ou la directive CSP `frame-ancestors` |
+
+Les 13 autres alertes du rapport (Medium, Low et Informational) ne sont pas détaillées ici.
+
+**Analyse :**
+
+- Le cookie de session `JSESSIONID` est envoyé sans `HttpOnly` : si un script malveillant s'exécute dans la page (XSS), il peut lire le cookie et détourner la session. L'absence de `SameSite` rend le cookie plus exposé aux attaques CSRF.
+- L'absence d'en-tête anti-clickjacking permet d'intégrer les pages de l'application dans une iframe d'un site tiers.
+- Aucune alerte High n'apparaît, mais cela ne signifie pas que l'application est sûre : le scan baseline est **passif**, il observe les réponses sans envoyer de charges d'attaque. Les failles du code, comme l'injection SQL détectée par Semgrep au Workshop 2, ne peuvent pas être trouvées par ce mode.
 
 ![Résumé du rapport ZAP](screenshots/w4-02-zap-report-summary.png)
 ![Alerte cookie](screenshots/w4-03-zap-cookie-alert.png)
@@ -207,7 +214,15 @@ Les rapports sont copiés hors du conteneur ZAP avec `docker cp`, car un volume 
 
 ### 4.3 Scan actif
 
-> À COMPLÉTER si le scan actif est réalisé sur l'instance locale (XSS, injections). Sinon, indiquer qu'il n'a pas été exécuté et pourquoi. Un scan actif envoie des charges d'attaque : il ne doit être lancé que sur sa propre application, jamais sur un système tiers ni sur un environnement de production.
+Le scan actif n'a **pas été exécuté** : l'énoncé le demande « si possible », et seul le scan baseline est intégré au pipeline. Les résultats de ce document viennent donc uniquement du scan passif.
+
+Un scan actif envoie des charges d'attaque (XSS, injections) et peut détecter des failles que le mode passif ne voit pas, comme l'injection SQL. Il ne doit être lancé que sur sa propre application, jamais sur un système tiers ni sur un environnement de production. Pour le réaliser sur l'instance locale :
+
+```bash
+docker run --rm -v "$(pwd)/zap-reports:/zap/wrk:rw" -t ghcr.io/zaproxy/zaproxy:stable \
+  zap-full-scan.py -t http://host.docker.internal:8081 \
+  -r zap-full.html -J zap-full.json -m 5 -T 30 -I
+```
 
 ---
 
@@ -228,6 +243,7 @@ Les deux workshops sont regroupés dans un seul `Jenkinsfile`. Dependabot n'en f
 - Les rapports sont archivés dans les artefacts du build.
 
 ![Stages du pipeline fusionné](screenshots/m-01-pipeline-stages.png)
+![Rapports archivés](screenshots/m-02-artifacts.png)
 
 ---
 
@@ -269,7 +285,7 @@ Dependabot et OWASP Dependency-Check ont détecté les mêmes bibliothèques vul
 - le premier scan Dependency-Check est très long et dépend de la disponibilité de l'API NVD ;
 - lancer des outils Docker depuis un Jenkins lui-même conteneurisé demande une configuration réseau et stockage particulière.
 
-> À COMPLÉTER : bilan chiffré (avant/après) une fois les corrections appliquées et le scan ZAP relevé.
+Les vulnérabilités détectées n'ont pas été corrigées, car l'objectif était de tester les outils : le pipeline en échec au seuil CVSS 7 est le résultat attendu de cette expérience.
 
 ---
 
@@ -283,11 +299,10 @@ Dependabot et OWASP Dependency-Check ont détecté les mêmes bibliothèques vul
 | `w3-05-owasp-report-before.png` | Résumé du rapport Dependency-Check |
 | `w3-06-owasp-cve-detail.png` | Détail d'une CVE |
 | `w3-07-pipeline-fail-cvss7.png` | Stage Dependency-Check en échec |
-| `w3-08-dependabot-after.png` | Alertes fermées après correction |
-| `w3-09-owasp-report-after.png` | Rapport après correction |
-| `w3-10-pipeline-success.png` | Pipeline réussi |
+| `w3-07b-console-cvss.png` | Console : CVE et scores CVSS |
 | `w4-01-zap-console.png` | Console du stage ZAP |
 | `w4-02-zap-report-summary.png` | Résumé du rapport ZAP |
 | `w4-03-zap-cookie-alert.png` | Alerte sur un cookie |
 | `w4-04-zap-header-alert.png` | Alerte sur un en-tête |
 | `m-01-pipeline-stages.png` | Stages du pipeline fusionné |
+| `m-02-artifacts.png` | Rapports archivés dans les artefacts |

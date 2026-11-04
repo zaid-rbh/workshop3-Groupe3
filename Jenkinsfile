@@ -118,7 +118,7 @@ pipeline {
                 script {
                     sh '''
                         mkdir -p reports/zap
-                        docker run --rm -v \$(pwd)/reports/zap:/zap/wrk:rw -t owasp/zap2docker-stable zap-baseline.py -t http://host.docker.internal:8080 -r zap-report.html || true
+                        docker run --rm -v \$(pwd)/reports/zap:/zap/wrk:rw -t zaproxy/zap-stable zap-baseline.py -t http://host.docker.internal:8080 -r zap-report.html || true
                     '''
                 }
             }

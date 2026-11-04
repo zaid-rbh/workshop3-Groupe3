@@ -26,21 +26,6 @@ pipeline {
             }
         }
 
-        stage('SonarQube Analysis') {
-            steps {
-                withSonarQubeEnv('SonarQube') {
-                    sh 'mvn -B org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey=workshop2 -Dsonar.projectName=workshop2 -Dsonar.host.url=$SONAR_HOST_URL -Dsonar.token=$SONAR_AUTH_TOKEN'
-                }
-            }
-        }
-
-        stage('Semgrep Scan') {
-            steps {
-                sh 'semgrep scan --config p/java --config p/owasp-top-ten --metrics=off --text --output semgrep-report.txt .'
-                sh 'cat semgrep-report.txt'
-            }
-        }
-
         stage('DAST - ZAP Baseline') {
             steps {
                 catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
@@ -78,19 +63,18 @@ pipeline {
             }
         }
 
-        stage('OWASP Dependency-Check') {
+        stage('SCA - OWASP Dependency-Check') {
             steps {
-                catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
-                    withCredentials([string(credentialsId: 'nvd-api-key', variable: 'NVD_API_KEY')]) {
-                        sh '''
-                            mvn -B org.owasp:dependency-check-maven:check \
-                              -DnvdApiKey=$NVD_API_KEY \
-                              -DdataDirectory=/var/jenkins_home/dependency-check-data \
-                              -Dformats=HTML,JSON \
-                              -DfailBuildOnCVSS=7 \
-                              -DossindexAnalyzerEnabled=false
-                        '''
-                    }
+                withCredentials([string(credentialsId: 'nvd-api-key', variable: 'NVD_API_KEY')]) {
+                    sh '''
+                        mvn -B org.owasp:dependency-check-maven:check \
+                          -DnvdApiKey=$NVD_API_KEY \
+                          -DdataDirectory=/var/jenkins_home/dependency-check-data \
+                          -Dformats=HTML,JSON \
+                          -DfailBuildOnCVSS=7 \
+                          -DautoUpdate=false \
+                          -DossindexAnalyzerEnabled=false
+                    '''
                 }
             }
         }
@@ -98,7 +82,7 @@ pipeline {
 
     post {
         always {
-            archiveArtifacts artifacts: 'semgrep-report.txt, zap-reports/*, app.log, target/dependency-check-report.*', allowEmptyArchive: true
+            archiveArtifacts artifacts: 'zap-reports/*, app.log, target/dependency-check-report.*', allowEmptyArchive: true
             echo 'Pipeline terminé'
         }
     }

@@ -34,3 +34,6 @@ Thumbs.db
 .env
 *.pem
 *.key
+app.pid
+app.log
+zap-reports/

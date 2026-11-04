@@ -1,10 +1,24 @@
 version: 2
 updates:
-  - package-ecosystem: maven
+  # Dépendances Maven (Java)
+  - package-ecosystem: "maven"
+    directory: "/" # أو "/maven" حسب مكان ملف pom.xml عندك في المشروع
+    schedule:
+      interval: "weekly"
+      day: "thursday"
+      time: "19:00"
+      timezone: "Africa/Casablanca"
+    open-pull-requests-limit: 5
+    allow:
+      - dependency-type: "direct"
+      - dependency-type: "indirect"
+
+  # Dépendances Docker
+  - package-ecosystem: "docker"
     directory: "/"
     schedule:
-      interval: weekly
-  - package-ecosystem: docker
-    directory: "/"
-    schedule:
-      interval: weekly
+      interval: "weekly"
+      day: "thursday"
+      time: "19:00"
+      timezone: "Africa/Casablanca"
+    open-pull-requests-limit: 5

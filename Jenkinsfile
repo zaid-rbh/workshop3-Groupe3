@@ -39,23 +39,26 @@ pipeline {
                         }
                     }
                 }
-
+6
                 stage('OWASP Dependency-Check') {
                     steps {
-                        withCredentials([string(credentialsId: 'nvd-api-key', variable: 'NVD_API_KEY')]) {
-                            sh '''
-                                mkdir -p reports/owasp
-                                /var/jenkins_home/tools/hudson.tasks.Maven_MavenInstallation/Maven3/bin/mvn -B org.owasp:dependency-check-maven:11.1.0:check \
-                                    -DnvdApiKey=${NVD_API_KEY} \
-                                    -DautoUpdate=false \
-                                    -DfailOnError=false \
-                                    -Dformat=HTML \
-                                    -Dodc.outputDirectory=reports/owasp \
-                                    -Dossindex.enabled=false \
-                                    -Dmaven.wagon.http.ssl.insecure=true \
-                                    -Dmaven.wagon.http.ssl.ignore.validity.dates=true \
-                                    -Dmaven.wagon.http.ssl.allowall=true || true
-                            '''
+                        script {
+                            def mavenHome = tool 'Maven3'
+                            withCredentials([string(credentialsId: 'nvd-api-key', variable: 'NVD_API_KEY')]) {
+                                sh """
+                    mkdir -p reports/owasp
+                    ${mavenHome}/bin/mvn -B org.owasp:dependency-check-maven:11.1.0:check \\
+                        -DnvdApiKey=\${NVD_API_KEY} \\
+                        -DautoUpdate=false \\
+                        -DfailOnError=false \\
+                        -Dformat=HTML \\
+                        -Dodc.outputDirectory=reports/owasp \\
+                        -Dossindex.enabled=false \\
+                        -Dmaven.wagon.http.ssl.insecure=true \\
+                        -Dmaven.wagon.http.ssl.ignore.validity.dates=true \\
+                        -Dmaven.wagon.http.ssl.allowall=true || true
+                """
+                            }
                         }
                     }
                     post {

@@ -44,7 +44,7 @@ pipeline {
                     steps {
                         script {
                             def mavenHome = tool 'Maven3'
-                            withCredentials([string(credentialsId: 'nvd-api-key', variable: 'NVD_API_KEY')]) {
+                            withCredentials([string(credentialsId: 'ned-api-key', variable: 'NVD_API_KEY')]) {
                                 sh """
                                     mkdir -p reports/owasp
                                     ${mavenHome}/bin/mvn -B org.owasp:dependency-check-maven:11.1.0:check \\

@@ -1,0 +1,30 @@
+services:
+  devsecops-app:
+    build: .
+    container_name: devsecops-app
+    ports:
+      - "8080:8080"
+    networks:
+      - app_net
+      - wazuh_net
+
+  wazuh-agent:
+    build:
+      context: .
+      dockerfile: Dockerfile.wazuh-agent
+    container_name: devsecops-wazuh-agent
+    hostname: devsecops-app-agent
+    restart: unless-stopped
+    environment:
+      - WAZUH_MANAGER=wazuh.manager
+      - WAZUH_AGENT_NAME=devsecops-app-agent
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - wazuh_net
+networks:
+  app_net:
+    driver: bridge
+  wazuh_net:
+    external: true
+    name: single-node_default

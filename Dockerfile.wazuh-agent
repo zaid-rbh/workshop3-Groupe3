@@ -1,0 +1,22 @@
+FROM ubuntu:22.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+ARG WAZUH_VERSION=4.9.0-1
+
+RUN apt-get update && apt-get install -y \
+    curl gnupg apt-transport-https lsb-release ca-certificates python3-docker \
+    && curl -s https://packages.wazuh.com/key/GPG-KEY-WAZUH | gpg --no-default-keyring --keyring gnupg-ring:/usr/share/keyrings/wazuh.gpg --import \
+    && chmod 644 /usr/share/keyrings/wazuh.gpg \
+    && echo "deb [signed-by=/usr/share/keyrings/wazuh.gpg] https://packages.wazuh.com/4.x/apt/ stable main" > /etc/apt/sources.list.d/wazuh.list \
+    && apt-get update \
+    && apt-get install -y wazuh-agent=${WAZUH_VERSION} \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+ENTRYPOINT ["/bin/bash", "-c", "\
+  sed -i \"s|<address>MANAGER_IP</address>|<address>${WAZUH_MANAGER:-wazuh.manager}</address>|g\" /var/ossec/etc/ossec.conf && \
+  if ! grep -q 'docker-listener' /var/ossec/etc/ossec.conf; then \
+    sed -i 's|</ossec_config>|  <wodle name=\"docker-listener\">\n    <interval>1m</interval>\n    <attempts>5</attempts>\n    <run_on_start>yes</run_on_start>\n    <disabled>no</disabled>\n  </wodle>\n</ossec_config>|' /var/ossec/etc/ossec.conf; \
+  fi && \
+  /var/ossec/bin/agent-auth -m ${WAZUH_MANAGER:-wazuh.manager} -A ${WAZUH_AGENT_NAME:-devsecops-app-agent} || true && \
+  /var/ossec/bin/wazuh-control start && \
+  tail -F /var/ossec/logs/ossec.log"]
